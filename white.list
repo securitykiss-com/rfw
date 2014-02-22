@@ -1,0 +1,6 @@
+# List of IP addresses that will be ignored by rfw
+# You should place here rfw clients IP addresses to prevent them being blocked on iptables. We don't want to accidentaly lock out the legitimate client.
+# It should contain at least one entry
+#1.2.3.4
+
+
