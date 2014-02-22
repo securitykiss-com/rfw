@@ -215,7 +215,7 @@ class RfwConfig(Config):
                 self._configexit("Could not read {} file".format(wfile))
             with open(wfile) as f:
                 lines = f.readlines()
-            ips = [self._validate_ip(line) for line in lines if not line.startswith('#')]
+            ips = [self._validate_ip(line) for line in lines if line.strip() and not line.strip().startswith('#')]
             if False in ips:
                 self._configexit("Wrong IP address format in {}".format(wfile))
             if not ips:

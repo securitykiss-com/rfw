@@ -1,8 +1,8 @@
-# rfw - remote firewall
+rfw - remote firewall
 =================================
 
-Firewall with remote control. rfw is the RESTful service which executes iptables rules to blacklist IP addresses on request from remote client. 
-rfw maintains the list of blocked IP addresses which may be updated in real time from many sources. rfw also solves the problem of concurrent modifications to iptables since the requests are serialized.  
+Firewall with remote control. rfw is the RESTful service which applies iptables rules for individual IP addresses on request from remote client.   
+rfw maintains the list of blocked IP addresses which may be updated in real time from many sources. rfw also solves the problem of concurrent modifications to iptables since the requests are serialized. 
 
 Typical use case
 ---------------------------------
@@ -27,7 +27,7 @@ Features
 - doesn't interfere with more general iptables rules
 - works well with fail2ban
 - initialize iptables with static set of rules
--
+
 
 Optional
 ---------------------------------
@@ -35,10 +35,9 @@ Optional
 
 
 FAQ
-=================================
-
-Q: Why not use chef/puppet/ansible/salt/fabric/ssh instead?
-A: A few reasons: 
+---------------------------------
+Q: Why not use chef/puppet/ansible/salt/fabric/ssh instead?  
+A: A couple of reasons:   
 - Security, trust and permission management. The above methods boil down to giving ssh root access to execute iptables. Often we want to allow the IP analytics server to be able to block selected IPs without giving admin rights.
 - Performance - handle frequent and concurrent requests
 - No dependencies and easy to talk to from any platform and language. RESTful - lingua franca of the Internet
@@ -49,19 +48,17 @@ Note that when the rules come from variuos sources they may interact badly. For 
 Note that HTTPS is not the perfect choice protocol here since by default it authenticates the server while we need to authenticate the client. Anyway we want to use standard protocols here so we stick to the SSL + basic authentication scheme commonly used on the web. SSL authenticates the server with certificates while shared username + password authenticates the client. Client certificates in HTTPS are possible but not all client libraries support it; also it would complicate deployment. 
 
 
-
-
 TODO
-=================================
-1. Start with a single argument -f config file. Default /etc/rfw/rfw.conf
-2. Write config file first to refine requirements
-3. Logging to syslog. When started log whitelisted (ignored) ips.
-4. Ignored IP list. The list of IPs which are never applied on iptables. Should HTTP response be different or just log and ignore?
-5. Ruleset order: blocked ips DROP, ACCEPT ignored IPs [on rfw port], all IPs on rfw port DROP, the rest.
-6. /etc/rfw/white.list and /etc/rfw/black.list. Locations relative to config file and overridable in config file.
-7. Asynchronous processing. Single threaded http server pushing requests to the queue. Another iptables guard thread to consume from the queue.
-8. use PUT and DELETE - should be idempotent. Give the option on non-restful requests with GET and additional ?verb=PUT/DELETE param in query
-9. Clarify responsibilities of rfw and rfwc
+---------------------------------
+- Start with a single argument -f config file. Default /etc/rfw/rfw.conf
+- Write config file first to refine requirements
+- Logging to syslog. When started log whitelisted (ignored) ips.
+- Ignored IP list. The list of IPs which are never applied on iptables. Should HTTP response be different or just log and ignore?
+- Ruleset order: blocked ips DROP, ACCEPT ignored IPs [on rfw port], all IPs on rfw port DROP, the rest.
+- /etc/rfw/white.list and /etc/rfw/black.list. Locations relative to config file and overridable in config file.
+- Asynchronous processing. Single threaded http server pushing requests to the queue. Another iptables guard thread to consume from the queue.
+- use PUT and DELETE - should be idempotent. Give the option on non-restful requests with GET and additional ?verb=PUT/DELETE param in query
+- Clarify responsibilities of rfw and rfwc
     - rfw need to store credentials in config file so it shouldn't be mixed with rfwc
     - rfw need to take an optional argument -f config_file
     - rfwc should be the lightweight http client submitting jobs to rfw
@@ -77,76 +74,76 @@ TODO
         - as above but with -b batch_file.sh option instead of standard input - asynchronous
         - if you want the 2 above make synchronous i.e. to wait for the rfw to finish processing iptables commands, simply call rfwc again with --wait flag. There should be a special call to rfw that does not return response until the queue is empty.
         
-10. rfw config file options: in rfw.conf
+- rfw config file options: in rfw.conf
 
-11. The default use case should be DROP individual IP on INPUT chain. Make the action (DROP/ACCEPT) configurable. It may be useful for FORWARD chain.
-
-
-
-
-# 
-# REST queries:
-#
-# to modify INPUT chain:
-# PUT /input/input_iface/src_ip[?wait=true[&timeout=n_sec]]
-# DELETE /input/input_iface/src_ip[?wait=true]
-
-# TODO add wait=true options in description
-#
-# to modify OUTPUT chain:
-# PUT /output/output_iface/dst_ip[?timeout=n_sec]
-# DELETE /output/output_iface/dst_ip
-# 
-# to modify FORWARD chain:
-# PUT /forward/input_iface[/src_ip[/output_iface[/dst_ip[?timeout=n_sec]]]]
-# DELETE /forward/input_iface[/src_ip[/output_iface[/dst_ip]]]
-# 
-# to list rules:
-# GET /chain[/iface]
-# TODO allow various formats of rules list
-
-# return help info for client. Response should include server ip, port, and relevant rfw configuration details
-# GET /
-#
-#
-#
-# Examples:
-# PUT /input/eth0/12.34.56.78?timeout=3600                ===   iptables -I INPUT -i eth0 -s 12.34.56.78 -j DROP with expiry 3600 seconds
-# DELETE /input/eth0/12.34.56.78                          ===   iptables -D INPUT -i eth0 -s 12.34.56.78 -j DROP
-# PUT /input/any/12.34.56.78                              ===   iptables -I INPUT -s 12.34.56.78 -j DROP
-# DELETE /input/any/12.34.56.78                           ===   iptables -D INPUT -s 12.34.56.78 -j DROP
-# PUT /output/ppp/12.34.56.67                             ===   iptables -I OUTPUT -i ppp+ -d 12.34.56.78 -j DROP
-# PUT /forward/ppp/11.22.33.44/eth0/55.66.77.88           ===   iptables -I FORWARD -i ppp+ -s 11.22.33.44 -o eth0 -d 55.66.77.88 -j DROP
-# PUT /forward/any/0.0.0.0/any/55.66.77.88                ===   iptables -I FORWARD -d 55.66.77.88 -j DROP
-# PUT /forward/tun/11.22.33.44                            ===   iptables -I FORWARD -i tun+ -s 11.22.33.44 -j DROP
-# 
-# PUT /input/eth0/12.34.56.78?wait=true                   ===   iptables -I INPUT -i eth0 -s 12.34.56.78 -j DROP    and wait for finishing processing this iptables command (previous request in the queue must also be processed)
-#
-# 
-# 0.0.0.0 can only be used in FORWARD chain to signal any IP 
-# iface without number like ppp means ppp+ in iptables parlance
-# any in place of interface means any interface
-#
-# PUT means for iptables: 
-# - for INPUT chain: insert the rule matching packets with specified source IP and input interface and apply DROP target
-# - for OUTPUT chain: insert the rule matching packets with specified destination IP and output interface and apply DROP target
-
-# DELETE means: DELETE the rule
-# PUT checks for duplicates first so subsequent updates do not add new rules, but it is not purely idempotent since it may update the expiry timeout
-# 
+- The default use case should be DROP individual IP on INPUT chain. Make the action (DROP/ACCEPT) configurable. It may be useful for FORWARD chain.
 
 
 
---------------------
+
+ 
+ REST queries:
+---------------------------------
+- to modify INPUT chain:  
+ PUT /input/input_iface/src_ip[?wait=true[&timeout=n_sec]]
+ DELETE /input/input_iface/src_ip[?wait=true]
+
+ TODO add wait=true options in description
+
+- to modify OUTPUT chain:
+ PUT /output/output_iface/dst_ip[?timeout=n_sec]
+ DELETE /output/output_iface/dst_ip
+ 
+- to modify FORWARD chain:
+ PUT /forward/input_iface[/src_ip[/output_iface[/dst_ip[?timeout=n_sec]]]]
+ DELETE /forward/input_iface[/src_ip[/output_iface[/dst_ip]]]
+ 
+- to list rules:
+ GET /chain[/iface]
+ TODO allow various formats of rules list
+
+- return help info for client. Response should include server ip, port, and relevant rfw configuration details
+ GET /
+
+
+
+ Examples:
+---------------------------------
+
+ PUT /input/eth0/12.34.56.78?timeout=3600                ===   iptables -I INPUT -i eth0 -s 12.34.56.78 -j DROP with expiry 3600 seconds
+ DELETE /input/eth0/12.34.56.78                          ===   iptables -D INPUT -i eth0 -s 12.34.56.78 -j DROP
+ PUT /input/any/12.34.56.78                              ===   iptables -I INPUT -s 12.34.56.78 -j DROP
+ DELETE /input/any/12.34.56.78                           ===   iptables -D INPUT -s 12.34.56.78 -j DROP
+ PUT /output/ppp/12.34.56.67                             ===   iptables -I OUTPUT -i ppp+ -d 12.34.56.78 -j DROP
+ PUT /forward/ppp/11.22.33.44/eth0/55.66.77.88           ===   iptables -I FORWARD -i ppp+ -s 11.22.33.44 -o eth0 -d 55.66.77.88 -j DROP
+ PUT /forward/any/0.0.0.0/any/55.66.77.88                ===   iptables -I FORWARD -d 55.66.77.88 -j DROP
+ PUT /forward/tun/11.22.33.44                            ===   iptables -I FORWARD -i tun+ -s 11.22.33.44 -j DROP
+ 
+ PUT /input/eth0/12.34.56.78?wait=true                   ===   iptables -I INPUT -i eth0 -s 12.34.56.78 -j DROP    and wait for finishing processing this iptables command (previous request in the queue must also be processed)
+
+ 
+ 0.0.0.0 can only be used in FORWARD chain to signal any IP 
+ iface without number like ppp means ppp+ in iptables parlance
+ any in place of interface means any interface
+
+ PUT means for iptables: 
+ - for INPUT chain: insert the rule matching packets with specified source IP and input interface and apply DROP target
+ - for OUTPUT chain: insert the rule matching packets with specified destination IP and output interface and apply DROP target
+
+ DELETE means: DELETE the rule
+ PUT checks for duplicates first so subsequent updates do not add new rules, but it is not purely idempotent since it may update the expiry timeout
+ 
+
+
+---------------------------------
 Testing with curl:
-curl -v --insecure --user mietek:passwd https://localhost:8443/aaa
+curl -v --insecure --user mietek:passwd https://localhost:8443/input/eth/3.4.5.6
 
 
 
 License
-===============
-
-Copyright (c) 2014 SecurityKISS Ltd, released under the MIT license. 
-Yes, Mr patent attorney, you have nothing to do here. Find a decent job instead.
+---------------------------------
+Copyright (c) 2014 SecurityKISS Ltd, released under the MIT license.   
+Yes, Mr patent attorney, you have nothing to do here. Find a decent job instead.  
 Fight intellectual "property".
 
