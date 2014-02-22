@@ -143,7 +143,7 @@ curl -v --insecure --user mietek:passwd https://localhost:8443/input/eth/3.4.5.6
 
 License
 ---------------------------------
-Copyright (c) 2014 SecurityKISS Ltd, released under the MIT license.   
+Copyright (c) 2014 **SecurityKISS Ltd**, released under the **MIT license**.   
 Yes, Mr patent attorney, you have nothing to do here. Find a decent job instead.  
 Fight intellectual "property".
 
