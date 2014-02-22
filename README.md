@@ -48,6 +48,14 @@ Note that when the rules come from variuos sources they may interact badly. For 
 
 Note that HTTPS is not the perfect choice protocol here since by default it authenticates the server while we need to authenticate the client. Anyway we want to use standard protocols here so we stick to the SSL + basic authentication scheme commonly used on the web. SSL authenticates the server with certificates while shared username + password authenticates the client. Client certificates in HTTPS are possible but not all client libraries support it; also it would complicate deployment. 
 
+**Q: rfw limits REST client access by IP whitelisting. What if I need to connect from dynamic IP?**
+
+A: rfw is intended for hosts with static IP addresses. It includes both servers and clients. For clients it is not as strong requirement as it seems since in typical rfw deployment the client is a data center collocated machine with static IP. If you really need to use REST client from various locations or from dynamic IP, you have a couple of options:
+
+- If you have any server with static IP with SSH access use it as a gateway client to rfw.
+- If you have dynamic IP from particular address pool assigned to your Internet Service Provider you may whitelist the whole range.
+- You can connect through VPN with static IPs
+
 
 TODO
 ---------------------------------
@@ -79,32 +87,32 @@ TODO
 
 
  
- REST queries:
+REST queries:
 ---------------------------------
 - to modify INPUT chain:  
- PUT /input/input_iface/src_ip[?wait=true[&timeout=n_sec]]
- DELETE /input/input_iface/src_ip[?wait=true]
+PUT /input/input_iface/src_ip[?wait=true[&timeout=n_sec]]  
+DELETE /input/input_iface/src_ip[?wait=true]  
 
- TODO add wait=true options in description
+TODO add wait=true options in description
 
 - to modify OUTPUT chain:
- PUT /output/output_iface/dst_ip[?timeout=n_sec]
- DELETE /output/output_iface/dst_ip
+PUT /output/output_iface/dst_ip[?timeout=n_sec]  
+DELETE /output/output_iface/dst_ip  
  
 - to modify FORWARD chain:
- PUT /forward/input_iface[/src_ip[/output_iface[/dst_ip[?timeout=n_sec]]]]
- DELETE /forward/input_iface[/src_ip[/output_iface[/dst_ip]]]
+PUT /forward/input_iface[/src_ip[/output_iface[/dst_ip[?timeout=n_sec]]]]  
+DELETE /forward/input_iface[/src_ip[/output_iface[/dst_ip]]]  
  
 - to list rules:
- GET /chain[/iface]
- TODO allow various formats of rules list
+GET /chain[/iface]  
+TODO allow various formats of rules list  
 
 - return help info for client. Response should include server ip, port, and relevant rfw configuration details
- GET /
+GET /  
 
 
 
- Examples:
+Examples:
 ---------------------------------
 
 PUT /input/eth0/12.34.56.78?timeout=3600                ===   iptables -I INPUT -i eth0 -s 12.34.56.78 -j DROP with expiry 3600 seconds
