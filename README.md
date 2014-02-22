@@ -36,7 +36,8 @@ Optional
 
 FAQ
 ---------------------------------
-Q: Why not use chef/puppet/ansible/salt/fabric/ssh instead?  
+**Q: Why not use chef/puppet/ansible/salt/fabric/ssh instead?**
+
 A: A couple of reasons:   
 - Security, trust and permission management. The above methods boil down to giving ssh root access to execute iptables. Often we want to allow the IP analytics server to be able to block selected IPs without giving admin rights.
 - Performance - handle frequent and concurrent requests
@@ -73,12 +74,8 @@ TODO
         - as rfwc without command line options but reading scripts from standard input - asynchronous
         - as above but with -b batch_file.sh option instead of standard input - asynchronous
         - if you want the 2 above make synchronous i.e. to wait for the rfw to finish processing iptables commands, simply call rfwc again with --wait flag. There should be a special call to rfw that does not return response until the queue is empty.
-        
 - rfw config file options: in rfw.conf
-
 - The default use case should be DROP individual IP on INPUT chain. Make the action (DROP/ACCEPT) configurable. It may be useful for FORWARD chain.
-
-
 
 
  
@@ -110,33 +107,39 @@ TODO
  Examples:
 ---------------------------------
 
- PUT /input/eth0/12.34.56.78?timeout=3600                ===   iptables -I INPUT -i eth0 -s 12.34.56.78 -j DROP with expiry 3600 seconds
- DELETE /input/eth0/12.34.56.78                          ===   iptables -D INPUT -i eth0 -s 12.34.56.78 -j DROP
- PUT /input/any/12.34.56.78                              ===   iptables -I INPUT -s 12.34.56.78 -j DROP
- DELETE /input/any/12.34.56.78                           ===   iptables -D INPUT -s 12.34.56.78 -j DROP
- PUT /output/ppp/12.34.56.67                             ===   iptables -I OUTPUT -i ppp+ -d 12.34.56.78 -j DROP
- PUT /forward/ppp/11.22.33.44/eth0/55.66.77.88           ===   iptables -I FORWARD -i ppp+ -s 11.22.33.44 -o eth0 -d 55.66.77.88 -j DROP
- PUT /forward/any/0.0.0.0/any/55.66.77.88                ===   iptables -I FORWARD -d 55.66.77.88 -j DROP
- PUT /forward/tun/11.22.33.44                            ===   iptables -I FORWARD -i tun+ -s 11.22.33.44 -j DROP
+PUT /input/eth0/12.34.56.78?timeout=3600                ===   iptables -I INPUT -i eth0 -s 12.34.56.78 -j DROP with expiry 3600 seconds
+
+DELETE /input/eth0/12.34.56.78                          ===   iptables -D INPUT -i eth0 -s 12.34.56.78 -j DROP
+
+PUT /input/any/12.34.56.78                              ===   iptables -I INPUT -s 12.34.56.78 -j DROP
+
+DELETE /input/any/12.34.56.78                           ===   iptables -D INPUT -s 12.34.56.78 -j DROP
+
+PUT /output/ppp/12.34.56.67                             ===   iptables -I OUTPUT -i ppp+ -d 12.34.56.78 -j DROP
+
+PUT /forward/ppp/11.22.33.44/eth0/55.66.77.88           ===   iptables -I FORWARD -i ppp+ -s 11.22.33.44 -o eth0 -d 55.66.77.88 -j DROP
+
+PUT /forward/any/0.0.0.0/any/55.66.77.88                ===   iptables -I FORWARD -d 55.66.77.88 -j DROP
+
+PUT /forward/tun/11.22.33.44                            ===   iptables -I FORWARD -i tun+ -s 11.22.33.44 -j DROP
  
- PUT /input/eth0/12.34.56.78?wait=true                   ===   iptables -I INPUT -i eth0 -s 12.34.56.78 -j DROP    and wait for finishing processing this iptables command (previous request in the queue must also be processed)
+PUT /input/eth0/12.34.56.78?wait=true                   ===   iptables -I INPUT -i eth0 -s 12.34.56.78 -j DROP    and wait for finishing processing this iptables command (previous request in the queue must also be processed)
+
 
  
- 0.0.0.0 can only be used in FORWARD chain to signal any IP 
- iface without number like ppp means ppp+ in iptables parlance
- any in place of interface means any interface
+0.0.0.0 can only be used in FORWARD chain to signal any IP   
+iface without number like ppp means ppp+ in iptables parlance  
+any in place of interface means any interface  
 
- PUT means for iptables: 
- - for INPUT chain: insert the rule matching packets with specified source IP and input interface and apply DROP target
- - for OUTPUT chain: insert the rule matching packets with specified destination IP and output interface and apply DROP target
+PUT means for iptables:
+- for INPUT chain: insert the rule matching packets with specified source IP and input interface and apply DROP target
+- for OUTPUT chain: insert the rule matching packets with specified destination IP and output interface and apply DROP target
 
- DELETE means: DELETE the rule
- PUT checks for duplicates first so subsequent updates do not add new rules, but it is not purely idempotent since it may update the expiry timeout
+DELETE means: DELETE the rule  
+PUT checks for duplicates first so subsequent updates do not add new rules, but it is not purely idempotent since it may update the expiry timeout  
  
-
-
 ---------------------------------
-Testing with curl:
+Testing with curl:  
 curl -v --insecure --user mietek:passwd https://localhost:8443/input/eth/3.4.5.6
 
 
