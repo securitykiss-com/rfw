@@ -10,7 +10,7 @@ from sslserver import SSLServer, BasicAuthRequestHandler
 
 
 def create_requesthandler(rfwconf, cmd_queue):
-    """Create RequestHandler type. This is a way to avoid global variables: a closure returning a class type that binds rfwconf inside. 
+    """Create RequestHandler type. This is a way to avoid global variables: a closure returning a class type that binds rfwconf and cmd_queue inside. 
     """
     class RequestHandler(BasicAuthRequestHandler):
     
@@ -162,7 +162,7 @@ def process_commands(cmd_queue, whitelist):
                 cmd_queue.task_done()
                 continue
 
-        lcmd = cmdexe.construct_iptables(rcmd)
+        lcmd = cmdexe.iptables_construct(rcmd)
 
         #TODO need to think over the in memory representation of 
         print "Got from Queue:\n{}\n{}".format(rcmd, lcmd)
@@ -171,11 +171,9 @@ def process_commands(cmd_queue, whitelist):
 
 
 
-def main():
-    configfile = parse_commandline()
-
-    #TODO check if the program was run by the user with sufficient privileges (root or root-like)
-    
+def startup_sanity_check():
+    """Check for most common errors to give informative message to the user
+    """
     # check if iptables installed
     try:
         cmdexe.call(['iptables', '-h'])
@@ -184,13 +182,28 @@ def main():
         print("Could not find iptables. Check if it is correctly installed.")
         sys.exit(1)
 
-    # iptables installed but cannot list rules - probably no root privileges
+    # check if root - iptables installed but cannot list rules
     try:
         cmdexe.call(['iptables', '-n', '-L', 'OUTPUT'])
     except subprocess.CalledProcessError, e:
         #TODO convert to log.fatal
         print("No access to iptables. The program requires root privileges.")
         sys.exit(1)
+
+
+
+
+
+def main():
+    configfile = parse_commandline()
+
+    startup_sanity_check()
+
+    # List of rules. Single rule is a dict like:
+    # {'opt': '--', 'destination': '0.0.0.0/0', 'target': 'DROP', 'chain': 'INPUT', 'prot': 'all', 'bytes': '0', 'source': '2.3.4.5', 'num': '1', 'in': 'eth+', 'pkts': '0', 'out': '*'}
+    rules = cmdexe.iptables_list()
+
+    print "\n".join(map(str, rules))
 
 
     rfwconf = config.RfwConfig(configfile)
@@ -201,7 +214,8 @@ def main():
     consumer.setDaemon(True)
     consumer.start()
 
-    #passing HandlerClass to SSLServer is very limiting, seems like a bad design of BaseServer. In order to pass extra info to RequestHandler without using global variable we have to wrap the class in closure
+    # Passing HandlerClass to SSLServer is very limiting, seems like a bad design of BaseServer. 
+    # In order to pass extra info to RequestHandler without using global variable we have to wrap the class in closure.
     HandlerClass = create_requesthandler(rfwconf, cmd_queue)
     if rfwconf.is_outward_server():
         server_address = (rfwconf.outward_server_ip(), int(rfwconf.outward_server_port()))

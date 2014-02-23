@@ -55,6 +55,24 @@ rfw is intended for hosts with static IP addresses. It includes both servers and
 - If you have dynamic IP from particular address pool assigned to your Internet Service Provider you may whitelist the whole range.
 - You can connect through VPN with static IPs
 
+**Q: Is it secure?**
+
+Tampering with core firewall should never be taken lightly. rfw must be run with root-like privileges in order to modify iptables so it requires a lot of trust in the software. 
+There is a trade-off 
+Sometimes there is no choice and you need to automate firewall actions anyway. While rfw is designed with distributed system in mind, it may improve security even for a single box by:
+- limiting iptables functionality to operate only on individual IP addresses
+- whitelisting selected IP addresses to prevent lock out
+- serializing iptables modification
+
+it provides advantage over changing iptables manually.
+
+Security of rfw was the primary concern from the very beginning and influenced these design decisions:
+- simplicity - no fancy features
+- no external dependencies except iptables
+- limited functionality - no generic rules
+- not performance-optimal but conservative choice of time-proven crypto: 2048-bit RSA based SSL with Basic Authentication
+
+
 
 TODO
 ---------------------------------

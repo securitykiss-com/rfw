@@ -1,4 +1,4 @@
-import subprocess, logging
+import subprocess, logging, re
 
 log = logging.getLogger("rfw.log")
 
@@ -18,7 +18,7 @@ def _convert_iface(iface):
 
 
 # rcmd is a dictionary with validated and sanitized input
-def construct_iptables(rcmd):
+def iptables_construct(rcmd):
     lcmd = ['iptables']
     
     # rcmd must have at least modify, chain, iface1 and ip1
@@ -58,14 +58,58 @@ def construct_iptables(rcmd):
     assert action in ['DROP', 'ACCEPT']
     lcmd.append('-j')
     lcmd.append(action)
-
     return lcmd
+
+
+def iptables_list():
+    """List and parse iptables rules.
+    return list of rules. Single rule is a dict like:
+    {'opt': '--', 'destination': '0.0.0.0/0', 'target': 'DROP', 'chain': 'INPUT', 'prot': 'all', 'bytes': '0', 'source': '2.3.4.5', 'num': '1', 'in': 'eth+', 'pkts': '0', 'out': '*'}
+    """
+    rules = []
+    out = call(['iptables', '-n', '-L', '-v', '--line-numbers'])
+    chains = ['INPUT', 'OUTPUT', 'FORWARD']
+    chain = None
+    header = None
+    for line in out.split('\n'):
+        line = line.strip()
+        print("OUT: {}".format(line))
+        if not line:
+            chain = None  #on blank line reset current chain
+            continue
+        m = re.match(r"Chain (\w+) .*", line)
+        if m and m.group(1) in chains:
+            chain = m.group(1)
+            continue
+        if "source" in line and "destination" in line:
+            headers = line.split()
+            continue
+        if chain:
+            columns = line.split()
+            if columns and len(headers) == len(columns) and columns[0].isdigit():
+                rule = dict(zip(headers, columns))
+                rule['chain'] = chain
+                rules.append(rule)
+    return rules
+                
+    
+
+
+        
+    
+
+
+
+
+
+
 
 
 def call(lcmd):
     try:
         out = subprocess.check_output(lcmd, stderr=subprocess.STDOUT)
-        print "call output: {}".format(out)
+        # print "call output: {}".format(out)
+        return out
     except subprocess.CalledProcessError, e:
         #TODO convert to log.error
         print("Error code {} returned when called '{}'. Command output: '{}'".format(e.returncode, e.cmd, e.output))
@@ -74,13 +118,13 @@ def call(lcmd):
 
 
 if __name__ == "__main__":
-    #print construct_iptables({'chain': 'input'})
-    print construct_iptables({'modify': 'I', 'chain': 'input', 'iface1': 'eth', 'ip1': '11.22.33.44', 'timeout': '3600'})
-    print construct_iptables({'modify': 'I', 'chain': 'output', 'iface1': 'eth0', 'ip1': '11.22.33.44', 'timeout': '3600'})
-    print construct_iptables({'modify': 'I', 'chain': 'input', 'iface1': 'any', 'ip1': '11.22.33.44', 'timeout': '3600'})
-    print construct_iptables({'modify': 'D', 'chain': 'forward', 'iface1': 'ppp', 'ip1': '11.22.33.44', 'timeout': '3600'})
-    print construct_iptables({'modify': 'I', 'chain': 'forward', 'iface1': 'ppp', 'ip1': '11.22.33.44', 'iface2': 'eth0', 'timeout': '3600'})
-    print construct_iptables({'modify': 'I', 'chain': 'forward', 'iface1': 'ppp', 'ip1': '11.22.33.44', 'ip2': '5.6.7.8', 'timeout': '3600'})
-    print construct_iptables({'modify': 'I', 'chain': 'forward', 'iface1': 'ppp', 'ip1': '11.22.33.44', 'iface2': 'eth0', 'ip2': '5.6.7.8', 'timeout': '3600'})
+    #print iptables_construct({'chain': 'input'})
+    print iptables_construct({'modify': 'I', 'chain': 'input', 'iface1': 'eth', 'ip1': '11.22.33.44', 'timeout': '3600'})
+    print iptables_construct({'modify': 'I', 'chain': 'output', 'iface1': 'eth0', 'ip1': '11.22.33.44', 'timeout': '3600'})
+    print iptables_construct({'modify': 'I', 'chain': 'input', 'iface1': 'any', 'ip1': '11.22.33.44', 'timeout': '3600'})
+    print iptables_construct({'modify': 'D', 'chain': 'forward', 'iface1': 'ppp', 'ip1': '11.22.33.44', 'timeout': '3600'})
+    print iptables_construct({'modify': 'I', 'chain': 'forward', 'iface1': 'ppp', 'ip1': '11.22.33.44', 'iface2': 'eth0', 'timeout': '3600'})
+    print iptables_construct({'modify': 'I', 'chain': 'forward', 'iface1': 'ppp', 'ip1': '11.22.33.44', 'ip2': '5.6.7.8', 'timeout': '3600'})
+    print iptables_construct({'modify': 'I', 'chain': 'forward', 'iface1': 'ppp', 'ip1': '11.22.33.44', 'iface2': 'eth0', 'ip2': '5.6.7.8', 'timeout': '3600'})
 
 
