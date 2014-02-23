@@ -90,35 +90,77 @@ def create_requesthandler(rfwconf, cmd_queue):
 
 def parse_commandline():
     parser = argparse.ArgumentParser(description='rfw - Remote Firewall')
-    parser.add_argument('-f', '--configfile', default='/etc/rfw/rfw.conf', help='rfw config file')
+    parser.add_argument('-f', '--configfile', default='/etc/rfw/rfw.conf', help='rfw config file (default /etc/rfw/rfw.conf)')
     args = parser.parse_args()
     return args.configfile
 
 
+def ip2long(s):
+    """Convert IP address string to big-endian long
+    """
+    return struct.unpack("!L", socket.inet_aton(s))[0]
+
+
+def long2ip(l):
+    """Convert big-endian long representation of IP address to string
+    """
+    return socket.inet_ntoa(struct.pack("!L", l))
+
+def mask2long(mask):
+    """Convert numeric CIDR network mask to negative integer representation for bitwise operations.
+    """
+    assert mask >= 0 and mask <= 32
+    return -(1 << (32 - mask)) 
+
+def in_iplist(ip, l):
+    """Check if IP address is in the list.
+    List l may contain individual IP addresses or CIDR ranges.
+    """
+    # no input validations here as it should be fast
+    for item in l:
+        if '/' in item:
+            a, mask = item.split('/')
+            m = mask2long(mask)
+            # IP range contains IP address when masked range equals masked address
+            if (ip2long(a) & m) == (ip2long(ip) & m):
+                return True
+        else:
+            if item == ip:
+                return True
+    return False
+
+
+
+
 def process_commands(cmd_queue, whitelist):
+    def is_ip_ignored(ip, whitelist, rcmd):
+        """Prevent adding DROP rules and prevent deleting ACCEPT rules for whitelisted IPs.
+        Also log the such attempts as warnings.
+        """
+        if in_iplist(ip, whitelist):
+            if (modify == 'I' and action == 'DROP') or (modify == 'D' and action == 'ACCEPT'):
+                log.warn("Request {} related to whitelisted IP address {} ignored.".format(str(rcmd), ip))
+                return True
+        return False
+ 
     while True:
         rcmd = cmd_queue.get()
         lcmd = cmdexe.construct_iptables(rcmd)
         #TODO check for duplicates, check the whitelist, execute command
         #TODO for whitelist addresses action/noaction depends on chain.input.action:
         
-        
+        modify = rcmd['modify']
         action = rcmd['action']
         chain = rcmd['chain']
 
         ip1 = rcmd['ip1']
-        
-        if ip1 in whitelist:
-            #TODO
-            pass
+        if is_ip_ignored(ip1, whitelist, rcmd): 
+            continue
         
         if chain == 'forward':
             ip2 = rcmd.get('ip2')
-            if ip2 and ip2 in whitelist:
-                #TODO
-                pass 
-
-        #TODO log warning if ip is from whitelist
+            if is_ip_ignored(ip2, whitelist, rcmd):
+                continue
 
         #TODO need to think over the in memory representation of 
         print "Got from Queue:\n{}\n{}".format(rcmd, lcmd)
@@ -128,13 +170,7 @@ def process_commands(cmd_queue, whitelist):
 
 def main():
     configfile = parse_commandline()
-    #TODO check for 'config' name collision
-    #config = load_config(configfile)
-
-    rfwconf = config.RfwConfig("rfw.conf")
-
-    #TODO replace with bind address and port from config
-    server_address = ('localhost', 8443) # (address, port)
+    rfwconf = config.RfwConfig(configfile)
 
 
     cmd_queue = Queue()
@@ -142,14 +178,22 @@ def main():
     consumer.setDaemon(True)
     consumer.start()
 
-    #passing HandlerClass to SSLServer is very limiting, seems like a bad design of BaseServer. In order to pass extra info to eequestHandler without using global variable we have to wrap the class in closure
+    #passing HandlerClass to SSLServer is very limiting, seems like a bad design of BaseServer. In order to pass extra info to RequestHandler without using global variable we have to wrap the class in closure
     HandlerClass = create_requesthandler(rfwconf, cmd_queue)
-    httpd = SSLServer(server_address, HandlerClass, rfwconf.outward_server_certfile(), rfwconf.outward_server_keyfile())
+    if rfwconf.is_outward_server():
+        server_address = (rfwconf.outward_server_ip(), int(rfwconf.outward_server_port()))
+        httpd = SSLServer(
+                    server_address, 
+                    HandlerClass, 
+                    rfwconf.outward_server_certfile(), 
+                    rfwconf.outward_server_keyfile())
+        sa = httpd.socket.getsockname()
+        print "Serving HTTPS on", sa[0], "port", sa[1], "..."
+        httpd.serve_forever()
 
-    sa = httpd.socket.getsockname()
-    print "Serving HTTPS on", sa[0], "port", sa[1], "..."
-    httpd.serve_forever()
+    
 
+    assert False, "There should be at least one non-daemon"
 
 if __name__ == "__main__":
     main()

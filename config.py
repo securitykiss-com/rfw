@@ -5,6 +5,8 @@ log = logging.getLogger("rfw.log")
 
 class Config:
     def __init__(self, path, section="config"):
+        if not os.path.isfile(path):
+            raise IOError("Could not find config file {}".format(path))
         self.path = path
         self.section = section
         self.parser = RawConfigParser(allow_no_value=True)
@@ -98,6 +100,8 @@ class RfwConfig(Config):
         if not '/' in possibly_with_mask:
             return possibly_with_mask
         return False
+
+
 
 
     # Port number format validator
@@ -241,20 +245,18 @@ class RfwConfig(Config):
 
    
     def whitelist_file(self):
-        try:
-            return self._get("whitelist.file")
-        except NoOptionError, e:
-            self._configexit(str(e))
+        return self._getfile("whitelist.file")
 
-    # return cached list of whitelist IP addresses
+
+    # return cached list of whitelist IP address ranges in CIDR format or individual IP addresses.
+    # TODO allow IP ranges with hyphen, cidrize all including individual IPs
     def whitelist(self):
         #TODO not thread safe but this method is initialized from constructor so it should be fine
         if self._whitelist is None:
             wfile = self.whitelist_file()
-            if not os.path.isfile(wfile):
-                self._configexit("Could not read {} file".format(wfile))
             with open(wfile) as f:
                 lines = f.readlines()
+            #TODO allow IP ranges: xxx.xxx.xxx.xxx-yyy.yyy.yyy.yyy - need to cidrize, see IpNet.php
             ips = [self._validate_ip_cidr(line, allow_no_mask=True) for line in lines if line.strip() and not line.strip().startswith('#')]
             if False in ips:
                 self._configexit("Wrong IP address format in {}".format(wfile))
