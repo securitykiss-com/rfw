@@ -109,13 +109,13 @@ TODO allow various formats of rules list
 - return help info for client. Response should include server ip, port, and relevant rfw configuration details
 GET /  
 
-.. code-block:: python
-
+```python
   from bottle import route, run, template
 
   @route('/hello/<name>')
       def index(name):
             return template('<b>Hello {{name}}</b>!', name=name)
+```
 
 
 
@@ -170,7 +170,7 @@ curl -v --insecure --user mietek:passwd https://localhost:8443/input/eth/3.4.5.6
 
 License
 ---------------------------------
-Copyright (c) 2014 **SecurityKISS Ltd**, released under the __**MIT license**.   
+Copyright (c) 2014 [**SecurityKISS Ltd**](http://www.securitykiss.com), released under the [**MIT license**](LICENSE.txt).   
 Yes, Mr patent attorney, you have nothing to do here. Find a decent job instead.  
 Fight intellectual "property".
 
