@@ -74,19 +74,31 @@ class RfwConfig(Config):
         self.whitelist()  # it will also cache the whitelist result
             
  
-    
-    # IP address format validator
-    # return validated (and trimmed) IP address or False if not valid
-    def _validate_ip(self, ip):
+    # Check if the IP address range is correct in CIDR format: xxx.xxx.xxx.xxx/nn
+    # If allow_no_mask = True it accepts also individual IP address without network mask
+    # return validated (and trimmed) IP address range or False if not valid
+    def _validate_ip_cidr(self, ip, allow_no_mask=False):
         if not ip:
             return False
         ip = ip.strip()
-        #TODO check if ^ is acceptable in regexp here
-        m = re.match(r"(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$", ip)
+        m = re.match(r"^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})(/(\d{1,2})$|$)", ip)
+        mask = m.group(6)
         if m:
             if int(m.group(1)) < 256 and int(m.group(2)) < 256 and int(m.group(3)) < 256 and int(m.group(4)) < 256:
-                return ip
+                if mask and int(mask) >= 0 and int(mask) <= 32:
+                    return ip
+                if allow_no_mask and not mask:
+                    return ip
         return False
+
+    # Check if the IP address has correct format.
+    # return validated (and trimmed) IP address or False if not valid
+    def _validate_ip(self, ip):
+        possibly_with_mask = self._validate_ip_cidr(self, ip, allow_no_mask=True)
+        if not '/' in possibly_with_mask:
+            return possibly_with_mask
+        return False
+
 
     # Port number format validator
     # return validated port number as string or False if not valid
@@ -243,7 +255,7 @@ class RfwConfig(Config):
                 self._configexit("Could not read {} file".format(wfile))
             with open(wfile) as f:
                 lines = f.readlines()
-            ips = [self._validate_ip(line) for line in lines if line.strip() and not line.strip().startswith('#')]
+            ips = [self._validate_ip_cidr(line, allow_no_mask=True) for line in lines if line.strip() and not line.strip().startswith('#')]
             if False in ips:
                 self._configexit("Wrong IP address format in {}".format(wfile))
             if not ips:
