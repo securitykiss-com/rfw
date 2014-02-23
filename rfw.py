@@ -1,4 +1,4 @@
-import argparse, logging, re, sys
+import argparse, logging, re, sys, struct, socket, subprocess
 from Queue import Queue
 from threading import Thread
 import config, cmdparse, cmdexe
@@ -109,7 +109,7 @@ def long2ip(l):
 def mask2long(mask):
     """Convert numeric CIDR network mask to negative integer representation for bitwise operations.
     """
-    assert mask >= 0 and mask <= 32
+    assert isinstance(mask, (int, long)) and mask >= 0 and mask <= 32
     return -(1 << (32 - mask)) 
 
 def in_iplist(ip, l):
@@ -120,7 +120,7 @@ def in_iplist(ip, l):
     for item in l:
         if '/' in item:
             a, mask = item.split('/')
-            m = mask2long(mask)
+            m = mask2long(int(mask))
             # IP range contains IP address when masked range equals masked address
             if (ip2long(a) & m) == (ip2long(ip) & m):
                 return True
@@ -145,9 +145,7 @@ def process_commands(cmd_queue, whitelist):
  
     while True:
         rcmd = cmd_queue.get()
-        lcmd = cmdexe.construct_iptables(rcmd)
-        #TODO check for duplicates, check the whitelist, execute command
-        #TODO for whitelist addresses action/noaction depends on chain.input.action:
+        #TODO check for duplicates, execute command
         
         modify = rcmd['modify']
         action = rcmd['action']
@@ -155,21 +153,46 @@ def process_commands(cmd_queue, whitelist):
 
         ip1 = rcmd['ip1']
         if is_ip_ignored(ip1, whitelist, rcmd): 
+            cmd_queue.task_done()
             continue
         
         if chain == 'forward':
             ip2 = rcmd.get('ip2')
             if is_ip_ignored(ip2, whitelist, rcmd):
+                cmd_queue.task_done()
                 continue
+
+        lcmd = cmdexe.construct_iptables(rcmd)
 
         #TODO need to think over the in memory representation of 
         print "Got from Queue:\n{}\n{}".format(rcmd, lcmd)
+        cmdexe.call(lcmd)
         cmd_queue.task_done()
 
 
 
 def main():
     configfile = parse_commandline()
+
+    #TODO check if the program was run by the user with sufficient privileges (root or root-like)
+    
+    # check if iptables installed
+    try:
+        cmdexe.call(['iptables', '-h'])
+    except OSError, e:
+        #TODO convert to log.fatal
+        print("Could not find iptables. Check if it is correctly installed.")
+        sys.exit(1)
+
+    # iptables installed but cannot list rules - probably no root privileges
+    try:
+        cmdexe.call(['iptables', '-n', '-L', 'OUTPUT'])
+    except subprocess.CalledProcessError, e:
+        #TODO convert to log.fatal
+        print("No access to iptables. The program requires root privileges.")
+        sys.exit(1)
+
+
     rfwconf = config.RfwConfig(configfile)
 
 

@@ -1,11 +1,12 @@
-import subprocess
+import subprocess, logging
 
+log = logging.getLogger("rfw.log")
 
 def _convert_iface(iface):
     """Convert iface string like 'any', 'eth', 'eth0' to appropriate iptables contribution. Return the list. Possibly empty if iface == 'any'
     """
     if iface == 'any':
-        # don't append interface
+        # do not append interface
         return []
     else:
         # append '+' quantifier to iface
@@ -58,9 +59,18 @@ def construct_iptables(rcmd):
     lcmd.append('-j')
     lcmd.append(action)
 
-    #TODO move execution to outside
-    #ret = subprocess.check_output(lcmd)
     return lcmd
+
+
+def call(lcmd):
+    try:
+        out = subprocess.check_output(lcmd, stderr=subprocess.STDOUT)
+        print "call output: {}".format(out)
+    except subprocess.CalledProcessError, e:
+        #TODO convert to log.error
+        print("Error code {} returned when called '{}'. Command output: '{}'".format(e.returncode, e.cmd, e.output))
+        raise e
+
 
 
 if __name__ == "__main__":
