@@ -7,7 +7,11 @@ import ssl
 
 
 class SSLServer(HTTPServer):
-    def __init__(self, server_address, HandlerClass, keyfile='certs/server.key', certfile='certs/server.crt'):
+    def __init__(self, server_address, HandlerClass, certfile, keyfile):
+        if not os.path.isfile(certfile):
+            raise IOError("SSLServer could not locate certfile {}".format(certfile))
+        if not os.path.isfile(keyfile):
+            raise IOError("SSLServer could not locate keyfile {}".format(keyfile))
         BaseServer.__init__(self, server_address, HandlerClass)
         self.socket = ssl.SSLSocket(
             socket.socket(self.address_family,self.socket_type),

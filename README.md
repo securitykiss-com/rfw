@@ -38,7 +38,7 @@ FAQ
 ---------------------------------
 **Q: Why not use chef/puppet/ansible/salt/fabric/ssh instead?**
 
-A: A couple of reasons:   
+For a couple of reasons:   
 - Security, trust and permission management. The above methods boil down to giving ssh root access to execute iptables. Often we want to allow the IP analytics server to be able to block selected IPs without giving admin rights.
 - Performance - handle frequent and concurrent requests
 - No dependencies and easy to talk to from any platform and language. RESTful - lingua franca of the Internet
@@ -46,11 +46,10 @@ A: A couple of reasons:
 
 Note that when the rules come from variuos sources they may interact badly. For firewalls the order of rules matters. That's why the functionality of remote rfw is limited to blocking individual IPs inserted in front of the ruleset. Be careful when using local rfwc where you have the full power of iptables at hand. 
 
-Note that HTTPS is not the perfect choice protocol here since by default it authenticates the server while we need to authenticate the client. Anyway we want to use standard protocols here so we stick to the SSL + basic authentication scheme commonly used on the web. SSL authenticates the server with certificates while shared username + password authenticates the client. Client certificates in HTTPS are possible but not all client libraries support it; also it would complicate deployment. 
 
 **Q: rfw limits REST client access by IP whitelisting. What if I need to connect from dynamic IP?**
 
-A: rfw is intended for hosts with static IP addresses. It includes both servers and clients. For clients it is not as strong requirement as it seems since in typical rfw deployment the client is a data center collocated machine with static IP. If you really need to use REST client from various locations or from dynamic IP, you have a couple of options:
+rfw is intended for hosts with static IP addresses. It includes both servers and clients. For clients it is not as strong requirement as it seems since in typical rfw deployment the client is a data center collocated machine with static IP. If you really need to use REST client from various locations or from dynamic IP, you have a couple of options:
 
 - If you have any server with static IP with SSH access use it as a gateway client to rfw.
 - If you have dynamic IP from particular address pool assigned to your Internet Service Provider you may whitelist the whole range.
@@ -110,6 +109,14 @@ TODO allow various formats of rules list
 - return help info for client. Response should include server ip, port, and relevant rfw configuration details
 GET /  
 
+.. code-block:: python
+
+  from bottle import route, run, template
+
+  @route('/hello/<name>')
+      def index(name):
+            return template('<b>Hello {{name}}</b>!', name=name)
+
 
 
 Examples:
@@ -145,8 +152,17 @@ PUT means for iptables:
 
 DELETE means: DELETE the rule  
 PUT checks for duplicates first so subsequent updates do not add new rules, but it is not purely idempotent since it may update the expiry timeout  
- 
+
+
+
+
+Design choices
 ---------------------------------
+
+Note that HTTPS is not the perfect choice protocol here since by default it authenticates the server while we need to authenticate the client. Anyway we want to use standard protocols here so we stick to the SSL + basic authentication scheme commonly used on the web. SSL authenticates the server with certificates while shared username + password authenticates the client. Client certificates in HTTPS are possible but not all client libraries support it; also it would complicate deployment. 
+
+
+
 Testing with curl:  
 curl -v --insecure --user mietek:passwd https://localhost:8443/input/eth/3.4.5.6
 
@@ -154,7 +170,7 @@ curl -v --insecure --user mietek:passwd https://localhost:8443/input/eth/3.4.5.6
 
 License
 ---------------------------------
-Copyright (c) 2014 **SecurityKISS Ltd**, released under the **MIT license**.   
+Copyright (c) 2014 **SecurityKISS Ltd**, released under the __**MIT license**.   
 Yes, Mr patent attorney, you have nothing to do here. Find a decent job instead.  
 Fight intellectual "property".
 

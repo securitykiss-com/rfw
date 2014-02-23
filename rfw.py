@@ -144,7 +144,7 @@ def main():
 
     #passing HandlerClass to SSLServer is very limiting, seems like a bad design of BaseServer. In order to pass extra info to eequestHandler without using global variable we have to wrap the class in closure
     HandlerClass = create_requesthandler(rfwconf, cmd_queue)
-    httpd = SSLServer(server_address, HandlerClass)
+    httpd = SSLServer(server_address, HandlerClass, rfwconf.outward_server_certfile(), rfwconf.outward_server_keyfile())
 
     sa = httpd.socket.getsockname()
     print "Serving HTTPS on", sa[0], "port", sa[1], "..."

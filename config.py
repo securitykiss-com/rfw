@@ -30,6 +30,16 @@ class Config:
                 log.info(log_msg)
         return False
 
+    def _getfile(self, opt):
+        try:
+            filename = self._get(opt)
+            if filename and os.path.isfile(filename):
+                return filename
+            else:
+                self._configexit("Could not find the file {} = {}".format(opt, filename))
+        except NoOptionError, e:
+            self._configexit(str(e))
+ 
 
     def _configexit(self, msg):
         """Log config error and exit with error code
@@ -48,6 +58,8 @@ class RfwConfig(Config):
         if self.is_outward_server():
             self.outward_server_port()
             self.outward_server_ip()
+            self.outward_server_certfile()
+            self.outward_server_keyfile()
         if self.is_local_server():
             self.local_server_port()
             self.is_local_server_authentication()
@@ -115,6 +127,22 @@ class RfwConfig(Config):
             msg = "outward.server.ip read while outward.server not enabled"
             self._configexit(msg)
     
+    def outward_server_certfile(self):
+        if self.is_outward_server():
+            return self._getfile("outward.server.certfile")
+        else:
+            msg = "outward.server.certfile read while outward.server not enabled"
+            self._configexit(msg)
+ 
+
+    def outward_server_keyfile(self):
+        if self.is_outward_server():
+            return self._getfile("outward.server.keyfile")
+        else:
+            msg = "outward.server.keyfile read while outward.server not enabled"
+            self._configexit(msg)
+
+
     def is_local_server(self):
         return self._getflag("local.server", "local.server not enabled. Ignoring local.server.port if present.")
     
