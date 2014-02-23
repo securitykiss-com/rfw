@@ -199,9 +199,9 @@ def main():
 
     startup_sanity_check()
 
-    # List of rules. Single rule is a dict like:
-    # {'opt': '--', 'destination': '0.0.0.0/0', 'target': 'DROP', 'chain': 'INPUT', 'prot': 'all', 'bytes': '0', 'source': '2.3.4.5', 'num': '1', 'in': 'eth+', 'pkts': '0', 'out': '*'}
     rules = cmdexe.iptables_list()
+    cmdexe.rules_to_commands(rules)
+
 
     print "\n".join(map(str, rules))
 

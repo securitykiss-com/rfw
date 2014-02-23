@@ -91,8 +91,34 @@ def iptables_list():
                 rule['chain'] = chain
                 rules.append(rule)
     return rules
-                
     
+def rules_to_commands(rules):
+    """Convert list of rules in output format from iptables_list() to command format like:
+    {'action': 'DROP', 'ip1': '2.3.4.5', 'modify': 'I', 'iface1': 'eth', 'chain': 'input'}
+    """
+    cmds = []
+    for rule in rules:
+        chain = rule['chain']
+        src = rule['source']
+        dst = rule['destination']
+        target = rule['target']
+        iface_in = rule['in']
+        iface_out = rule['out']
+        prot = rule['prot']
+
+        if chain == 'INPUT':
+            # for INPUT chain check if the rule matches rfw command format
+            if dst == '0.0.0.0/0' and prot == 'all' and iface_out == '*' and target in ['DROP', 'ACCEPT']:
+                # create rfw command without 'modify' key. It should be added later.
+                iface1 = iface_in
+                if iface1[-1] == '+':
+                    iface1 = iface1[:-1]
+                cmd = {'chain': chain.lower(), 'action': target, 'ip1': src, 'iface1': iface1}
+                print "cmd: {}".format(str(cmd))
+
+
+            
+
 
 
         
