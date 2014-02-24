@@ -17,18 +17,19 @@ def _convert_iface(iface):
 
 
 
-# rcmd is a dictionary with validated and sanitized input
-def iptables_construct(rcmd):
+# modify is 'I' for Insert or 'D' for Delete
+# rcmd is a dictionary like {'action': 'DROP', 'ip1': '2.3.4.5', 'iface1': 'eth', 'chain': 'input'}
+# It is assumed that the inputs were validated and sanitized
+def iptables_construct(modify, rcmd):
     lcmd = ['iptables']
     
     # rcmd must have at least modify, chain, iface1 and ip1
-    assert 'modify' in rcmd and 'chain' in rcmd and 'iface1' in rcmd and 'ip1' in rcmd and 'action' in rcmd
-    modify = rcmd['modify']
+    assert 'chain' in rcmd and 'iface1' in rcmd and 'ip1' in rcmd and 'action' in rcmd
     assert modify in ['I', 'D']  # insert or delete
     chain = rcmd['chain'].upper()
     assert chain in ['INPUT', 'OUTPUT', 'FORWARD']
 
-    lcmd.append('-' + rcmd['modify'])
+    lcmd.append('-' + modify)
     lcmd.append(chain)
 
 
@@ -92,11 +93,11 @@ def iptables_list():
                 rules.append(rule)
     return rules
     
-def rules_to_commands(rules):
+def rules_to_rcmds(rules):
     """Convert list of rules in output format from iptables_list() to command format like:
-    {'action': 'DROP', 'ip1': '2.3.4.5', 'modify': 'I', 'iface1': 'eth', 'chain': 'input'}
+    {'action': 'DROP', 'ip1': '2.3.4.5', 'iface1': 'eth', 'chain': 'input'}
     """
-    cmds = []
+    rcmds = []
     for rule in rules:
         chain = rule['chain']
         src = rule['source']
@@ -109,12 +110,21 @@ def rules_to_commands(rules):
         if chain == 'INPUT':
             # for INPUT chain check if the rule matches rfw command format
             if dst == '0.0.0.0/0' and prot == 'all' and iface_out == '*' and target in ['DROP', 'ACCEPT']:
-                # create rfw command without 'modify' key. It should be added later.
                 iface1 = iface_in
                 if iface1[-1] == '+':
                     iface1 = iface1[:-1]
-                cmd = {'chain': chain.lower(), 'action': target, 'ip1': src, 'iface1': iface1}
-                print "cmd: {}".format(str(cmd))
+                rcmd = {'chain': chain.lower(), 'action': target, 'ip1': src, 'iface1': iface1}
+                rcmds.append(rcmd)
+
+        if chain == 'OUTPUT':
+            pass
+
+        if chain == 'FORWARD':
+            pass
+
+
+
+    print "rcmds: {}".format(rcmds)
 
 
             
@@ -144,13 +154,12 @@ def call(lcmd):
 
 
 if __name__ == "__main__":
-    #print iptables_construct({'chain': 'input'})
-    print iptables_construct({'modify': 'I', 'chain': 'input', 'iface1': 'eth', 'ip1': '11.22.33.44', 'timeout': '3600'})
-    print iptables_construct({'modify': 'I', 'chain': 'output', 'iface1': 'eth0', 'ip1': '11.22.33.44', 'timeout': '3600'})
-    print iptables_construct({'modify': 'I', 'chain': 'input', 'iface1': 'any', 'ip1': '11.22.33.44', 'timeout': '3600'})
-    print iptables_construct({'modify': 'D', 'chain': 'forward', 'iface1': 'ppp', 'ip1': '11.22.33.44', 'timeout': '3600'})
-    print iptables_construct({'modify': 'I', 'chain': 'forward', 'iface1': 'ppp', 'ip1': '11.22.33.44', 'iface2': 'eth0', 'timeout': '3600'})
-    print iptables_construct({'modify': 'I', 'chain': 'forward', 'iface1': 'ppp', 'ip1': '11.22.33.44', 'ip2': '5.6.7.8', 'timeout': '3600'})
-    print iptables_construct({'modify': 'I', 'chain': 'forward', 'iface1': 'ppp', 'ip1': '11.22.33.44', 'iface2': 'eth0', 'ip2': '5.6.7.8', 'timeout': '3600'})
+    print iptables_construct('I', {'chain': 'input', 'iface1': 'eth', 'ip1': '11.22.33.44', 'timeout': '3600'})
+    print iptables_construct('I', {'chain': 'output', 'iface1': 'eth0', 'ip1': '11.22.33.44', 'timeout': '3600'})
+    print iptables_construct('I', {'chain': 'input', 'iface1': 'any', 'ip1': '11.22.33.44', 'timeout': '3600'})
+    print iptables_construct('D', {'chain': 'forward', 'iface1': 'ppp', 'ip1': '11.22.33.44', 'timeout': '3600'})
+    print iptables_construct('I', {'chain': 'forward', 'iface1': 'ppp', 'ip1': '11.22.33.44', 'iface2': 'eth0', 'timeout': '3600'})
+    print iptables_construct('I', {'chain': 'forward', 'iface1': 'ppp', 'ip1': '11.22.33.44', 'ip2': '5.6.7.8', 'timeout': '3600'})
+    print iptables_construct('I', {'chain': 'forward', 'iface1': 'ppp', 'ip1': '11.22.33.44', 'iface2': 'eth0', 'ip2': '5.6.7.8', 'timeout': '3600'})
 
 

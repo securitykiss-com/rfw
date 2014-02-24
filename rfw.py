@@ -48,13 +48,15 @@ def create_requesthandler(rfwconf, cmd_queue):
             assert action in ['DROP', 'ACCEPT']
 
             rcmd['action'] = action
-            rcmd['modify'] = modify
             
-            print("command2: %s" % rcmd) 
 
-            cmd_queue.put_nowait(rcmd)
+            tup = (modify, rcmd)
+            print("command2 tup: %s" % str(tup))
 
-            content = str(rcmd)
+            
+            cmd_queue.put_nowait(tup)
+
+            content = str(tup)
     
             #request content can be read from rfile
             #inp = self.rfile.read(65000) # use Content-Length to know how many bytes to read
@@ -76,7 +78,7 @@ def create_requesthandler(rfwconf, cmd_queue):
     
         def do_GET(self):
             if rfwconf.is_non_restful(): 
-                #TODO here it will be more complicated. The GET listing requests are valid in restful scenario
+                #TODO here it will be more complicated. The GET requests are valid in restful scenario for listing rfw status
                 self.do_POST()
             else:
                 self.send_response(405) # Method Not Allowed
@@ -133,10 +135,11 @@ def in_iplist(ip, l):
 
 
 def process_commands(cmd_queue, whitelist):
-    def is_ip_ignored(ip, whitelist, rcmd):
+    def is_ip_ignored(ip, whitelist, modify, rcmd):
         """Prevent adding DROP rules and prevent deleting ACCEPT rules for whitelisted IPs.
         Also log the such attempts as warnings.
         """
+        action = rcmd['action']
         if in_iplist(ip, whitelist):
             if (modify == 'I' and action == 'DROP') or (modify == 'D' and action == 'ACCEPT'):
                 log.warn("Request {} related to whitelisted IP address {} ignored.".format(str(rcmd), ip))
@@ -144,25 +147,25 @@ def process_commands(cmd_queue, whitelist):
         return False
  
     while True:
-        rcmd = cmd_queue.get()
+        # read (modify, rcmd) tuple from the queue
+        modify, rcmd = cmd_queue.get()
         #TODO check for duplicates, execute command
         
-        modify = rcmd['modify']
         action = rcmd['action']
         chain = rcmd['chain']
 
         ip1 = rcmd['ip1']
-        if is_ip_ignored(ip1, whitelist, rcmd): 
+        if is_ip_ignored(ip1, whitelist, modify, rcmd): 
             cmd_queue.task_done()
             continue
         
         if chain == 'forward':
             ip2 = rcmd.get('ip2')
-            if is_ip_ignored(ip2, whitelist, rcmd):
+            if is_ip_ignored(ip2, whitelist, modify, rcmd):
                 cmd_queue.task_done()
                 continue
 
-        lcmd = cmdexe.iptables_construct(rcmd)
+        lcmd = cmdexe.iptables_construct(modify, rcmd)
 
         #TODO need to think over the in memory representation of 
         print "Got from Queue:\n{}\n{}".format(rcmd, lcmd)
@@ -200,7 +203,7 @@ def main():
     startup_sanity_check()
 
     rules = cmdexe.iptables_list()
-    cmdexe.rules_to_commands(rules)
+    cmdexe.rules_to_rcmds(rules)
 
 
     print "\n".join(map(str, rules))
