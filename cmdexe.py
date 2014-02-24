@@ -126,6 +126,7 @@ def rules_to_rcmds(rules):
                     if iface1 == '*':
                         iface1 = 'any'
                     rcmd = {'chain': chain.lower(), 'action': target, 'ip1': src, 'iface1': iface1}
+                    #TODO check for duplicates here and log warning 
                     rcmds.append(rcmd)
     
             if chain == 'OUTPUT':
@@ -136,6 +137,7 @@ def rules_to_rcmds(rules):
                     if iface1 == '*':
                         iface1 = 'any'
                     rcmd = {'chain': chain.lower(), 'action': target, 'ip1': dst, 'iface1': iface1}
+                    #TODO check for duplicates here and log warning 
                     rcmds.append(rcmd)
     
             if chain == 'FORWARD':

@@ -150,6 +150,7 @@ def process_commands(cmd_queue, whitelist):
         # read (modify, rcmd) tuple from the queue
         modify, rcmd = cmd_queue.get()
         #TODO check for duplicates, execute command
+        #TODO compare with memory model, make it robust, reread the model with iptables_list() if necessary (append 'L' rcmd to the queue, so it will be applied in the next loop iteration) 
         
         action = rcmd['action']
         chain = rcmd['chain']

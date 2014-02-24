@@ -13,7 +13,7 @@ Features
 - block individual IP addresses on iptables on request from remote host
 - serialize requests to prevent concurrency issues with iptables
 - remove duplicate entries
-- bulk updates in order to sync client blocklist with rfw status 
+- bulk updates in order to sync client blocklist with rfw status - ?? It doesn't seem to be a good idea. Keep it simple, move sync responsibilty to the client. Let the client GET the rules list and PUT the missing ones.
 - both remote and local interface
 - remote updates via RESTful API
 - secured with HTTPS
@@ -26,12 +26,12 @@ Features
 - blocking individual IPs with expiry periods
 - doesn't interfere with more general iptables rules
 - works well with fail2ban
-- initialize iptables with static set of rules
+- initialize iptables with static set of rules - ?? not sure if needed
 
 
 Optional
 ---------------------------------
-- persistent log of events to be replayed after reboot
+- persistent log of events to be replayed after reboot - ?? Maybe just a separate iptables command log
 
 
 FAQ
@@ -39,10 +39,10 @@ FAQ
 **Q: Why not use chef/puppet/ansible/salt/fabric/ssh instead?**
 
 For a couple of reasons:   
-- Security, trust and permission management. The above methods boil down to giving ssh root access to execute iptables. Often we want to allow the IP analytics server to be able to block selected IPs without giving admin rights.
+- Security, trust and permission management. The above tools require giving a remote client the ssh root acces. Often we want to allow the IP analytics server to be able to block selected IPs without giving admin rights.
 - Performance - handle frequent and concurrent requests
 - No dependencies and easy to talk to from any platform and language. RESTful - lingua franca of the Internet
-- Protection against locking yourself up by applying erroneous rule
+- Protection against locking yourself out by applying erroneous rule
 
 Note that when the rules come from variuos sources they may interact badly. For firewalls the order of rules matters. That's why the functionality of remote rfw is limited to blocking individual IPs inserted in front of the ruleset. Be careful when using local rfwc where you have the full power of iptables at hand. 
 
@@ -52,8 +52,8 @@ Note that when the rules come from variuos sources they may interact badly. For 
 rfw is intended for hosts with static IP addresses. It includes both servers and clients. For clients it is not as strong requirement as it seems since in typical rfw deployment the client is a data center collocated machine with static IP. If you really need to use REST client from various locations or from dynamic IP, you have a couple of options:
 
 - If you have any server with static IP with SSH access use it as a gateway client to rfw.
-- If you have dynamic IP from particular address pool assigned to your Internet Service Provider you may whitelist the whole range.
-- You can connect through VPN with static IPs
+- If you have dynamic IP from particular address pool assigned to your Internet Service Provider you may whitelist the entire address range.
+- You can connect through VPN with static IP.
 
 **Q: Is it secure?**
 
@@ -70,7 +70,7 @@ Security of rfw was the primary concern from the very beginning and influenced t
 - simplicity - no fancy features
 - no external dependencies except iptables
 - limited functionality - no generic rules
-- not performance-optimal but conservative choice of time-proven crypto: 2048-bit RSA based SSL with Basic Authentication
+- not performance-optimal but conservative choice of time-proven crypto: 2048-bit RSA based SSL with HTTP Basic Authentication
 
 
 
@@ -101,7 +101,8 @@ TODO
         - if you want the 2 above make synchronous i.e. to wait for the rfw to finish processing iptables commands, simply call rfwc again with --wait flag. There should be a special call to rfw that does not return response until the queue is empty.
 - rfw config file options: in rfw.conf
 - The default use case should be DROP individual IP on INPUT chain. Make the action (DROP/ACCEPT) configurable. It may be useful for FORWARD chain.
-
+- python packaging and release scripts
+- documentation
 
  
 REST queries:
