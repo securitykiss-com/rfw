@@ -79,7 +79,10 @@ def parse_command_query(query):
 
 def parse_command(url):
     """
-    return dict with command elements
+    return dict with command elements like:
+    {'chain': 'input', 'iface1': 'eth', 'ip1': '11.22.33.44', 'timeout': '3600'}
+    chain == input implies that ip1 is a source address
+    chain == output implies that ip1 is a destination address
     """
     # split input to path and query
     parsed = urlparse.urlparse(url)

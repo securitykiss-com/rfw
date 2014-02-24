@@ -203,10 +203,12 @@ def main():
     startup_sanity_check()
 
     rules = cmdexe.iptables_list()
-    cmdexe.rules_to_rcmds(rules)
+    rcmds = cmdexe.rules_to_rcmds(rules)
 
-
+    print "\nrules\n===============\n"
     print "\n".join(map(str, rules))
+    print "\nrcmds\n===============\n"
+    print "\n".join(map(str, rcmds))
 
 
     rfwconf = config.RfwConfig(configfile)

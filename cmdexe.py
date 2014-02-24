@@ -3,16 +3,16 @@ import subprocess, logging, re
 log = logging.getLogger("rfw.log")
 
 def _convert_iface(iface):
-    """Convert iface string like 'any', 'eth', 'eth0' to appropriate iptables contribution. Return the list. Possibly empty if iface == 'any'
+    """Convert iface string like 'any', 'eth', 'eth0' to iptables iface naming like empty_string eth+, eth0. 
     """
     if iface == 'any':
         # do not append interface
-        return []
+        return ''
     else:
         # append '+' quantifier to iface
         if not iface[-1].isdigit():
             iface += '+'
-        return ['-i', iface]
+        return iface
 
 
 
@@ -34,7 +34,11 @@ def iptables_construct(modify, rcmd):
 
 
     iface1 = rcmd['iface1']
-    lcmd.extend(_convert_iface(iface1))
+    iface1type = '-o' if chain == 'OUTPUT' else '-i'
+    iptf1 = _convert_iface(iface1)
+    if iptf1:
+        lcmd.append(iface1type)
+        lcmd.append(iptf1)
 
 
     ip1 = rcmd['ip1']
@@ -46,15 +50,15 @@ def iptables_construct(modify, rcmd):
     if chain == 'FORWARD':
         # for FORWARD chain iface2 and ip2 are not mandatory
         iface2 = rcmd.get('iface2')
-        if iface2:
-            lcmd.extend(_convert_iface(iface2))
+        iptf2 = _convert_iface(iface2)
+        if iptf2:
+            lcmd.append('-o')
+            lcmd.append(iptf2)
         ip2 = rcmd.get('ip2')
         if ip2:
             lcmd.append('-d')
             lcmd.append(ip2)
 
-
-       
     action = rcmd['action']
     assert action in ['DROP', 'ACCEPT']
     lcmd.append('-j')
@@ -74,7 +78,7 @@ def iptables_list():
     header = None
     for line in out.split('\n'):
         line = line.strip()
-        print("OUT: {}".format(line))
+        #print("OUT: {}".format(line))
         if not line:
             chain = None  #on blank line reset current chain
             continue
@@ -107,24 +111,38 @@ def rules_to_rcmds(rules):
         iface_out = rule['out']
         prot = rule['prot']
 
-        if chain == 'INPUT':
-            # for INPUT chain check if the rule matches rfw command format
-            if dst == '0.0.0.0/0' and prot == 'all' and iface_out == '*' and target in ['DROP', 'ACCEPT']:
-                iface1 = iface_in
-                if iface1[-1] == '+':
-                    iface1 = iface1[:-1]
-                rcmd = {'chain': chain.lower(), 'action': target, 'ip1': src, 'iface1': iface1}
-                rcmds.append(rcmd)
+        # TODO In memory model of iptables rules:
+        # 1. There is a raw data model (called rules) containing all rules from 'iptables -L' - this is output from iptables_list().
+        # 2. Another simplified data model (called rcmds) with filtered rules corresponding to rfw REST commands. This one will be stored in memory for quick lookup and periodically recreated from actual iptables reading. If so, we need to serialize iptables_list() command in the queue.
 
-        if chain == 'OUTPUT':
-            pass
+        # rfw originated rules may have only DROP/ACCEPT targets and do not specify protocol
+        if target in ['DROP', 'ACCEPT'] and prot == 'all':
+            # Check if the rule matches rfw command format for particular chains. Ignore non-rfw rules
+            if chain == 'INPUT':
+                if dst == '0.0.0.0/0' and iface_out == '*':
+                    iface1 = iface_in
+                    if iface1[-1] == '+':
+                        iface1 = iface1[:-1]
+                    if iface1 == '*':
+                        iface1 = 'any'
+                    rcmd = {'chain': chain.lower(), 'action': target, 'ip1': src, 'iface1': iface1}
+                    rcmds.append(rcmd)
+    
+            if chain == 'OUTPUT':
+                if src == '0.0.0.0/0' and iface_in == '*' :
+                    iface1 = iface_out
+                    if iface1[-1] == '+':
+                        iface1 = iface1[:-1]
+                    if iface1 == '*':
+                        iface1 = 'any'
+                    rcmd = {'chain': chain.lower(), 'action': target, 'ip1': dst, 'iface1': iface1}
+                    rcmds.append(rcmd)
+    
+            if chain == 'FORWARD':
+                #TODO
+                pass
 
-        if chain == 'FORWARD':
-            pass
-
-
-
-    print "rcmds: {}".format(rcmds)
+    return rcmds
 
 
             
