@@ -1,7 +1,7 @@
 import argparse, logging, re, sys, struct, socket, subprocess, signal
 from Queue import Queue
 from threading import Thread
-import config, cmdparse, cmdexe
+import config, rfwconfig, cmdparse, cmdexe
 from sslserver import SSLServer, BasicAuthRequestHandler
 
    
@@ -210,31 +210,13 @@ def stop():
     sys.exit(1)
 
 
-def configure_logging(loglevel, logfile):
-    log.setLevel(loglevel)
-    fh = logging.FileHandler(logfile)
-    fh.setLevel(loglevel)
-    fh.setFormatter(logging.Formatter('%(asctime)s %(levelname)-8s %(filename)s:%(lineno)d.%(funcName)s() - %(message)s'))
-    log.addHandler(fh)
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.ERROR)
-    ch.setFormatter(logging.Formatter('%(levelname)s %(message)s'))
-    log.addHandler(ch)
-
-    # add log file handler for libraries according to the logging convention
-    logging.getLogger('lib').addHandler(fh)    
-
-    log.error('testlog')
-
-    
-
 
 def main():
 
     args = parse_commandline()
-    configure_logging(args.loglevel, args.logfile)
+    config.set_logging(log, args.loglevel, args.logfile)
 
-    print args.loglevel, args.logfile, args.configfile
+    # print args.loglevel, args.logfile, args.configfile
 
     startup_sanity_check()
 
@@ -253,7 +235,7 @@ def main():
     print "\n".join(map(str, rcmds))
 
 
-    rfwconf = config.RfwConfig(args.configfile)
+    rfwconf = rfwconfig.RfwConfig(args.configfile)
 
 
     cmd_queue = Queue()
