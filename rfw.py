@@ -1,11 +1,11 @@
-import argparse, logging, re, sys, struct, socket, subprocess
+import argparse, logging, re, sys, struct, socket, subprocess, signal
 from Queue import Queue
 from threading import Thread
 import config, cmdparse, cmdexe
 from sslserver import SSLServer, BasicAuthRequestHandler
 
    
-
+log = logging.getLogger('rfw')
 
 
 
@@ -91,10 +91,16 @@ def create_requesthandler(rfwconf, cmd_queue):
 
 
 def parse_commandline():
+    CONFIG_FILE = '/etc/rfw/rfw/conf'
+    LOG_LEVEL = 'WARN'
+    LOG_FILE = '/var/log/rfw.log'
     parser = argparse.ArgumentParser(description='rfw - Remote Firewall')
-    parser.add_argument('-f', '--configfile', default='/etc/rfw/rfw.conf', help='rfw config file (default /etc/rfw/rfw.conf)')
+    parser.add_argument('-f', default=CONFIG_FILE, metavar='CONFIGFILE', dest='configfile', help='rfw config file (default {})'.format(CONFIG_FILE))
+    parser.add_argument('--loglevel', default=LOG_LEVEL, help='Log level (default {})'.format(LOG_LEVEL), choices=['DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL'])
+    parser.add_argument('--logfile', default=LOG_FILE, help='Log file (default {})'.format(LOG_FILE))
+    parser.add_argument('-v', help='The same as \'--loglevel DEBUG\'', action='store_true')
     args = parser.parse_args()
-    return args.configfile
+    return args
 
 
 def ip2long(s):
@@ -194,14 +200,49 @@ def startup_sanity_check():
         print("No access to iptables. The program requires root privileges.")
         sys.exit(1)
 
+def __sigTERMhandler(signum, frame):
+    log.debug("Caught signal {}. Exiting".format(signum))
+    stop()
+
+def stop():
+    #TODO cleanup
+    logging.shutdown()
+    sys.exit(1)
 
 
+def configure_logging(loglevel, logfile):
+    log.setLevel(loglevel)
+    fh = logging.FileHandler(logfile)
+    fh.setLevel(loglevel)
+    fh.setFormatter(logging.Formatter('%(asctime)s %(levelname)-8s %(filename)s:%(lineno)d.%(funcName)s() - %(message)s'))
+    log.addHandler(fh)
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.ERROR)
+    ch.setFormatter(logging.Formatter('%(levelname)s %(message)s'))
+    log.addHandler(ch)
+
+    # add log file handler for libraries according to the logging convention
+    logging.getLogger('lib').addHandler(fh)    
+
+    log.error('testlog')
+
+    
 
 
 def main():
-    configfile = parse_commandline()
+
+    args = parse_commandline()
+    configure_logging(args.loglevel, args.logfile)
+
+    print args.loglevel, args.logfile, args.configfile
 
     startup_sanity_check()
+
+    # Install signal handlers
+    signal.signal(signal.SIGTERM, __sigTERMhandler)
+    signal.signal(signal.SIGINT, __sigTERMhandler)
+    # TODO we may also need to ignore signal.SIGHUP in daemon mode
+
 
     rules = cmdexe.iptables_list()
     rcmds = cmdexe.rules_to_rcmds(rules)
@@ -212,7 +253,7 @@ def main():
     print "\n".join(map(str, rcmds))
 
 
-    rfwconf = config.RfwConfig(configfile)
+    rfwconf = config.RfwConfig(args.configfile)
 
 
     cmd_queue = Queue()

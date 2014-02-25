@@ -27,6 +27,9 @@ Features
 - doesn't interfere with more general iptables rules
 - works well with fail2ban
 - initialize iptables with static set of rules - ?? not sure if needed
+- attacks protection:
+    - only enable clients by static IP
+    - or open for all, but ban after failed attempts (like fail2ban)
 
 
 Optional
@@ -103,6 +106,10 @@ TODO
 - The default use case should be DROP individual IP on INPUT chain. Make the action (DROP/ACCEPT) configurable. It may be useful for FORWARD chain.
 - python packaging and release scripts
 - documentation
+- run as daemon (check fail2ban code)
+- intercept SIG_TERM and SIG_INT for graceful termination
+- add --non-daemon option at rfw startup
+- implement timeouts - check fail2ban
 
  
 REST queries:

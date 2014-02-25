@@ -1,9 +1,15 @@
-import socket, os, base64
+import socket, os, base64, logging
 from SocketServer import BaseServer, BaseRequestHandler
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 from SimpleHTTPServer import SimpleHTTPRequestHandler
-#use embedded ssl library. Don't use OpenSSL library - it has multiple issues
+# use embedded ssl library. Don't use OpenSSL library - it has multiple issues
 import ssl
+
+# Follow the logging convention:
+# - Modules intended as reusable libraries have names 'lib.<modulename>' what allows to configure single parent 'lib' logger for all libraries in the consuming application
+# - Add NullHandler (since Python 2.7) to prevent error message if no other handlers present. The consuming app may add other handlers to 'lib' logger or its children.
+log = logging.getLogger('lib.{}'.format(__name__))
+log.addHandler(logging.NullHandler())
 
 
 class SSLServer(HTTPServer):
@@ -56,8 +62,12 @@ class BasicAuthRequestHandler(BaseHTTPRequestHandler):
                 # parse_auth to return tuple (user, password)
                 creds = this.parse_auth(this.headers.get("Authorization", ""))
                 if not creds or not this.creds_check(*creds):
+                    # log attempts with wrong credentials
+                    if creds:
+                        ip = this.client_address[0]
+                        log.warn("Authentication attempt with wrong credentials from {}".format(ip))
                     this.send_response(401)
-                    this.send_header('WWW-Authenticate', 'Basic realm="%s"' % realm)
+                    this.send_header('WWW-Authenticate', 'Basic realm="{}"'.format(realm))
                     this.send_header('Connection', 'close')
                     this.end_headers()
                     return False
