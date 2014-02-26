@@ -1,4 +1,4 @@
-import struct, socket
+import struct, socket, re
 
 def ip2long(s):
     """Convert IP address string to big-endian long
@@ -34,5 +34,51 @@ def in_iplist(ip, l):
                 return True
     return False
 
+
+def validate_ip_cidr(ip, allow_no_mask=False):
+     """Check if the IP address range is correct in CIDR format: xxx.xxx.xxx.xxx/nn
+     If allow_no_mask = True it accepts also individual IP address without network mask
+     
+     return validated and trimmed IP address range or False if not valid
+     """
+     if not ip:
+         return False
+     ip = ip.strip()
+     m = re.match(r"^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})(/(\d{1,2})$|$)", ip)
+     mask = m.group(6)
+     if m and int(m.group(1)) < 256 and int(m.group(2)) < 256 and int(m.group(3)) < 256 and int(m.group(4)) < 256:
+         if mask and int(mask) >= 0 and int(mask) <= 32:
+             return ip
+         if allow_no_mask and not mask:
+             return ip
+     return False
+
+def validate_ip(ip):
+     """Check if the IP address has correct format.
+     
+     return validated (and trimmed) IP address or False if not valid
+     """
+     if not ip:
+         return False
+     ip = ip.strip()
+     m = re.match(r"^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$", ip)
+     if m and int(m.group(1)) < 256 and int(m.group(2)) < 256 and int(m.group(3)) < 256 and int(m.group(4)) < 256:
+         return ip
+     return False
+
+
+
+
+def validate_port(port):
+     """Port number format validator
+     
+     return validated port number as string or False if not valid
+     """
+     if not port:
+         return False
+     port = port.strip()
+     if port.isdigit() and int(port) > 0 and int(port) < 65536:
+         return port
+     return False
 
 

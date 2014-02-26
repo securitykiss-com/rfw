@@ -1,4 +1,4 @@
-import logging, sys, types, os.path, re, config
+import logging, sys, types, os.path, re, config, iputil
 
 class RfwConfig(config.Config):
 
@@ -27,44 +27,6 @@ class RfwConfig(config.Config):
         self.iptables_path()
             
  
-    # Check if the IP address range is correct in CIDR format: xxx.xxx.xxx.xxx/nn
-    # If allow_no_mask = True it accepts also individual IP address without network mask
-    # return validated (and trimmed) IP address range or False if not valid
-    def _validate_ip_cidr(self, ip, allow_no_mask=False):
-        if not ip:
-            return False
-        ip = ip.strip()
-        m = re.match(r"^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})(/(\d{1,2})$|$)", ip)
-        mask = m.group(6)
-        if m:
-            if int(m.group(1)) < 256 and int(m.group(2)) < 256 and int(m.group(3)) < 256 and int(m.group(4)) < 256:
-                if mask and int(mask) >= 0 and int(mask) <= 32:
-                    return ip
-                if allow_no_mask and not mask:
-                    return ip
-        return False
-
-    # Check if the IP address has correct format.
-    # return validated (and trimmed) IP address or False if not valid
-    def _validate_ip(self, ip):
-        possibly_with_mask = self._validate_ip_cidr(self, ip, allow_no_mask=True)
-        if not '/' in possibly_with_mask:
-            return possibly_with_mask
-        return False
-
-
-
-
-    # Port number format validator
-    # return validated port number as string or False if not valid
-    def _validate_port(self, port):
-        if not port:
-            return False
-        port = port.strip()
-        if port.isdigit() and int(port) > 0 and int(port) < 65536:
-            return port
-        return False
-
 
     def is_outward_server(self):
         return self._getflag("outward.server", "outward.server not enabled. Ignoring outward.server.port and outward.server.ip if present.")
@@ -73,7 +35,7 @@ class RfwConfig(config.Config):
         if self.is_outward_server():
             try:
                 port = self._get("outward.server.port")
-                if port and self._validate_port(port):
+                if port and iputil.validate_port(port):
                     return port
                 else:
                     self._configexit("Wrong outward.server.port value. It should be a single number from the 1..65535 range")
@@ -118,7 +80,7 @@ class RfwConfig(config.Config):
         if self.is_local_server():
             try:
                 port = self._get("local.server.port")
-                if port and self._validate_port(port):
+                if port and iputil.validate_port(port):
                     return port
                 else:
                     self._configexit("Wrong local.server.port value. It should be a single number from the 1..65535 range")
@@ -208,7 +170,7 @@ class RfwConfig(config.Config):
             with open(wfile) as f:
                 lines = f.readlines()
             #TODO allow IP ranges: xxx.xxx.xxx.xxx-yyy.yyy.yyy.yyy - need to cidrize, see IpNet.php
-            ips = [self._validate_ip_cidr(line, allow_no_mask=True) for line in lines if line.strip() and not line.strip().startswith('#')]
+            ips = [iputil.validate_ip_cidr(line, allow_no_mask=True) for line in lines if line.strip() and not line.strip().startswith('#')]
             if False in ips:
                 self._configexit("Wrong IP address format in {}".format(wfile))
             if not ips:

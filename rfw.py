@@ -23,6 +23,7 @@ def create_requesthandler(rfwconf, cmd_queue):
             assert modify == 'D' or modify == 'I'
             print("self.path=" + self.path)
             
+            #TODO add error raising in parse_command and handle it here
             rcmd = cmdparse.parse_command(self.path)
 
             print("command1: %s" % rcmd) 
@@ -154,7 +155,7 @@ def process_commands(cmd_queue, whitelist):
                 continue
 
 
-        #TODO check for duplicates, execute command
+        # check for duplicates, apply rule
         #TODO compare with memory model, make it robust, reread the model with iptables_list() if necessary (append 'L' rcmd to the queue, so it will be applied in the next loop iteration) 
         if modify == 'I':
             if rule_exists:

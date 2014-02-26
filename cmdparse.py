@@ -14,16 +14,25 @@ def parse_command_path(path):
         return ret
     ret['chain'] = m.group(1)
     s = m.group(2)
+    if not s:
+        return ret
 
     #TODO add validation and error reporting. Currently wrong iface and ip are ignored    
+    # errors to be reported in the result and not with exceptions
     m = re.match(r"/(\w{2,8}\d{0,3})(/.*|$)", s)
     if not m:
+        ret['error'] = 'Incorrect interface name 1'
         return ret
     ret['iface1'] = m.group(1)
     s = m.group(2)
+    if not s:
+        return ret
 
+
+    #TODO replace this matching with real IP check from iputil 
     m = re.match(r"/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(/.*|$)", s)
     if not m:
+        ret['error'] = 'Incorrect IP address 1'
         return ret
     ret['ip1'] = m.group(1)
     s = m.group(2)

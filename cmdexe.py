@@ -2,6 +2,7 @@ import subprocess, logging, re
 
 log = logging.getLogger("rfw.log")
 
+# TODO move to cmdparse ?
 def _convert_iface(iface):
     """Convert iface string like 'any', 'eth', 'eth0' to iptables iface naming like empty_string eth+, eth0. 
     """
