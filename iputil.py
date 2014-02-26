@@ -39,34 +39,38 @@ def validate_ip_cidr(ip, allow_no_mask=False):
      """Check if the IP address range is correct in CIDR format: xxx.xxx.xxx.xxx/nn
      If allow_no_mask = True it accepts also individual IP address without network mask
      
-     return validated and trimmed IP address range or False if not valid
+     return validated and trimmed IP address range as string or False if not valid
      """
      if not ip:
          return False
      ip = ip.strip()
      m = re.match(r"^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})(/(\d{1,2})$|$)", ip)
      mask = m.group(6)
-     if m and int(m.group(1)) < 256 and int(m.group(2)) < 256 and int(m.group(3)) < 256 and int(m.group(4)) < 256:
-         if mask and int(mask) >= 0 and int(mask) <= 32:
-             return ip
-         if allow_no_mask and not mask:
-             return ip
+     if m:
+         a1, a2, a3, a4 = int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4))
+         if a1<256 and a2<256 and a3<256 and a4<256:
+             ip_canon = "{}.{}.{}.{}".format(a1, a2, a3, a4)
+             if mask and int(mask) >= 0 and int(mask) <= 32:
+                 return "{}/{}".format(ip_canon, mask)
+             if allow_no_mask and not mask:
+                 return ip_canon
      return False
 
 def validate_ip(ip):
      """Check if the IP address has correct format.
      
-     return validated (and trimmed) IP address or False if not valid
+     return validated and trimmed IP address as string or False if not valid
      """
      if not ip:
          return False
      ip = ip.strip()
      m = re.match(r"^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$", ip)
-     if m and int(m.group(1)) < 256 and int(m.group(2)) < 256 and int(m.group(3)) < 256 and int(m.group(4)) < 256:
-         return ip
+     if m:
+         a1, a2, a3, a4 = int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4))
+         if a1<256 and a2<256 and a3<256 and a4<256:
+             ip_canon = "{}.{}.{}.{}".format(a1, a2, a3, a4)
+             return ip_canon
      return False
-
-
 
 
 def validate_port(port):
