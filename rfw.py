@@ -115,12 +115,30 @@ def process_commands(cmd_queue, whitelist):
                 return True
         return False
  
+    def apply_rule(modify, rcmd):
+        lcmd = cmdexe.iptables_construct(modify, rcmd)
+        out = cmdexe.call(lcmd)
+        if out:
+            log.warn("Non empty output from the command: {}. The output: '{}'".format(lcmd, out))
+        return out
+
+
+    #TODO iptables_list() here  and store in local var?
+    rules = cmdexe.iptables_list()
+    rcmds = cmdexe.rules_to_rcmds(rules)
+
+    #TODO make sure if the rcmds format from iptables_list()/rules_to_rcmds() conforms to REST rcmds from cmdparse 
+    #TODO add consistency checks
+
     while True:
         # read (modify, rcmd) tuple from the queue
         modify, rcmd = cmd_queue.get()
-        #TODO check for duplicates, execute command
-        #TODO compare with memory model, make it robust, reread the model with iptables_list() if necessary (append 'L' rcmd to the queue, so it will be applied in the next loop iteration) 
         
+        print "Got from Queue:\n{}\n{}".format(rcmd)
+
+        rule_exists = rcmd in rcmds
+
+
         action = rcmd['action']
         chain = rcmd['chain']
 
@@ -135,11 +153,26 @@ def process_commands(cmd_queue, whitelist):
                 cmd_queue.task_done()
                 continue
 
-        lcmd = cmdexe.iptables_construct(modify, rcmd)
 
-        #TODO need to think over the in memory representation of 
-        print "Got from Queue:\n{}\n{}".format(rcmd, lcmd)
-        cmdexe.call(lcmd)
+        #TODO check for duplicates, execute command
+        #TODO compare with memory model, make it robust, reread the model with iptables_list() if necessary (append 'L' rcmd to the queue, so it will be applied in the next loop iteration) 
+        if modify == 'I':
+            if rule_exists:
+                log.warn("Trying to insert existing rule: {}. Command ignored.".format(rcmd))
+            else:
+                apply_rule(modify, rcmd)
+                log.info("Inserting the rule: {}".format(rcmd))
+        else if modify == 'D':
+            if rule_exists:
+                apply_rule(modify, rcmd)
+                log.info("Deleting the rule: {}".format(rcmd))
+            else:
+                log.warn("Trying to delete not existing rule: {}. Command ignored.".format(rcmd))
+        else if modify == 'L':
+            #TODO rereading the iptables?
+            pass
+
+        #TODO put it in finally block
         cmd_queue.task_done()
 
 

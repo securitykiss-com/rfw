@@ -1,7 +1,7 @@
 import sys, logging, urlparse, re
 
 
-log = logging.getLogger("rfw.log")
+log = logging.getLogger("rfw.cmdparse")
 
 def parse_command_path(path):
     s = path
@@ -27,6 +27,9 @@ def parse_command_path(path):
         return ret
     ret['ip1'] = m.group(1)
     s = m.group(2)
+
+    #TODO also validate 0.0.0.0 IP address
+    # 0.0.0.0 is a special address meaning any IP. It can be used only in FORWARD chain and only if the other FORWARD address is given specifically
  
     if ret.get('chain') == 'forward':
         m = re.match(r"/(\w{2,8}\d{0,3})(/.*|$)", s)
@@ -97,6 +100,7 @@ def parse_command(url):
 
 
 if __name__ == '__main__':
+    # Some minimum testing 
     def test_parse_command():
         assert parse_command("/") == {}
         assert parse_command("/blabla")['error']
