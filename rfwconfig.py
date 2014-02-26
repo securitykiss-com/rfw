@@ -24,6 +24,7 @@ class RfwConfig(config.Config):
         self.chain_forward_action()
         self.whitelist_file()
         self.whitelist()  # it will also cache the whitelist result
+        self.iptables_path()
             
  
     # Check if the IP address range is correct in CIDR format: xxx.xxx.xxx.xxx/nn
@@ -214,6 +215,14 @@ class RfwConfig(config.Config):
                 self._configexit("Could not find a valid IP address in {}".format(wfile))
             self._whitelist = ips
         return self._whitelist
+
+
+    def iptables_path(self):
+        ipt = self._get('iptables.path')
+        if ipt:
+            return ipt
+        else:
+            self._configexit("iptables.path cannot be empty")
 
 
 

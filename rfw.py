@@ -1,7 +1,7 @@
 import argparse, logging, re, sys, struct, socket, subprocess, signal
 from Queue import Queue
 from threading import Thread
-import config, rfwconfig, cmdparse, cmdexe
+import config, rfwconfig, cmdparse, cmdexe, iputil
 from sslserver import SSLServer, BasicAuthRequestHandler
 
    
@@ -103,50 +103,13 @@ def parse_commandline():
     return args
 
 
-def ip2long(s):
-    """Convert IP address string to big-endian long
-    """
-    return struct.unpack("!L", socket.inet_aton(s))[0]
-
-
-def long2ip(l):
-    """Convert big-endian long representation of IP address to string
-    """
-    return socket.inet_ntoa(struct.pack("!L", l))
-
-def mask2long(mask):
-    """Convert numeric CIDR network mask to negative integer representation for bitwise operations.
-    """
-    assert isinstance(mask, (int, long)) and mask >= 0 and mask <= 32
-    return -(1 << (32 - mask)) 
-
-def in_iplist(ip, l):
-    """Check if IP address is in the list.
-    List l may contain individual IP addresses or CIDR ranges.
-    """
-    # no input validations here as it should be fast
-    for item in l:
-        if '/' in item:
-            a, mask = item.split('/')
-            m = mask2long(int(mask))
-            # IP range contains IP address when masked range equals masked address
-            if (ip2long(a) & m) == (ip2long(ip) & m):
-                return True
-        else:
-            if item == ip:
-                return True
-    return False
-
-
-
-
 def process_commands(cmd_queue, whitelist):
     def is_ip_ignored(ip, whitelist, modify, rcmd):
         """Prevent adding DROP rules and prevent deleting ACCEPT rules for whitelisted IPs.
         Also log the such attempts as warnings.
         """
         action = rcmd['action']
-        if in_iplist(ip, whitelist):
+        if iputil.in_iplist(ip, whitelist):
             if (modify == 'I' and action == 'DROP') or (modify == 'D' and action == 'ACCEPT'):
                 log.warn("Request {} related to whitelisted IP address {} ignored.".format(str(rcmd), ip))
                 return True
@@ -181,31 +144,34 @@ def process_commands(cmd_queue, whitelist):
 
 
 
-def startup_sanity_check():
+def startup_sanity_check(rfwconf):
     """Check for most common errors to give informative message to the user
     """
-    # check if iptables installed
+    ipt = rfwconf.iptables_path()
+    # checking if iptables installed
     try:
-        cmdexe.call(['iptables', '-h'])
+        cmdexe.call([ipt, '-h'])
     except OSError, e:
-        #TODO convert to log.fatal
-        print("Could not find iptables. Check if it is correctly installed.")
+        log.fatal("Could not find {}. Check if it is correctly installed.".format(ipt))
         sys.exit(1)
 
-    # check if root - iptables installed but cannot list rules
+    # checking if root - iptables installed but cannot list rules
     try:
-        cmdexe.call(['iptables', '-n', '-L', 'OUTPUT'])
+        cmdexe.call([ipt, '-n', '-L', 'OUTPUT'])
     except subprocess.CalledProcessError, e:
-        #TODO convert to log.fatal
-        print("No access to iptables. The program requires root privileges.")
+        log.fatal("No access to iptables. The program requires root privileges.")
         sys.exit(1)
+
+    #TODO check if iptables is not pointing to rfwc
+
+
 
 def __sigTERMhandler(signum, frame):
     log.debug("Caught signal {}. Exiting".format(signum))
+    print
     stop()
 
 def stop():
-    #TODO cleanup
     logging.shutdown()
     sys.exit(1)
 
@@ -218,7 +184,9 @@ def main():
 
     # print args.loglevel, args.logfile, args.configfile
 
-    startup_sanity_check()
+
+    rfwconf = rfwconfig.RfwConfig(args.configfile)
+    startup_sanity_check(rfwconf)
 
     # Install signal handlers
     signal.signal(signal.SIGTERM, __sigTERMhandler)
@@ -235,7 +203,6 @@ def main():
     print "\n".join(map(str, rcmds))
 
 
-    rfwconf = rfwconfig.RfwConfig(args.configfile)
 
 
     cmd_queue = Queue()
