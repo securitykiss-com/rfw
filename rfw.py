@@ -134,7 +134,7 @@ def process_commands(cmd_queue, whitelist):
         # read (modify, rcmd) tuple from the queue
         modify, rcmd = cmd_queue.get()
         
-        print "Got from Queue:\n{}\n{}".format(rcmd)
+        print "Got from Queue:\n{}".format(rcmd)
 
         rule_exists = rcmd in rcmds
 
@@ -162,13 +162,13 @@ def process_commands(cmd_queue, whitelist):
             else:
                 apply_rule(modify, rcmd)
                 log.info("Inserting the rule: {}".format(rcmd))
-        else if modify == 'D':
+        elif modify == 'D':
             if rule_exists:
                 apply_rule(modify, rcmd)
                 log.info("Deleting the rule: {}".format(rcmd))
             else:
                 log.warn("Trying to delete not existing rule: {}. Command ignored.".format(rcmd))
-        else if modify == 'L':
+        elif modify == 'L':
             #TODO rereading the iptables?
             pass
 
