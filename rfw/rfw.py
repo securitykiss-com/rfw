@@ -91,8 +91,10 @@ def create_requesthandler(rfwconf, cmd_queue):
 
 
 
-def parse_commandline():
-    CONFIG_FILE = '/etc/rfw/rfw/conf'
+
+
+def create_args_parser():
+    CONFIG_FILE = '/etc/rfw/rfw.conf'
     LOG_LEVEL = 'WARN'
     LOG_FILE = '/var/log/rfw.log'
     parser = argparse.ArgumentParser(description='rfw - Remote Firewall')
@@ -100,6 +102,10 @@ def parse_commandline():
     parser.add_argument('--loglevel', default=LOG_LEVEL, help='Log level (default {})'.format(LOG_LEVEL), choices=['DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL'])
     parser.add_argument('--logfile', default=LOG_FILE, help='Log file (default {})'.format(LOG_FILE))
     parser.add_argument('-v', help='The same as \'--loglevel DEBUG\'', action='store_true')
+    return parser
+
+def parse_args():
+    parser = create_args_parser()
     args = parser.parse_args()
     return args
 
@@ -213,13 +219,18 @@ def stop():
 
 def main():
 
-    args = parse_commandline()
+    args = parse_args()
     config.set_logging(log, args.loglevel, args.logfile)
 
     # print args.loglevel, args.logfile, args.configfile
 
+    try:
+        rfwconf = rfwconfig.RfwConfig(args.configfile)
+    except IOError, e:
+        print(e.message)
+        create_args_parser().print_usage()
+        sys.exit(1)
 
-    rfwconf = rfwconfig.RfwConfig(args.configfile)
     startup_sanity_check(rfwconf)
 
     # Install signal handlers

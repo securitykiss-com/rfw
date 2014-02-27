@@ -1,7 +1,7 @@
 rfw - remote firewall
 =================================
 
-Firewall with remote control. rfw is the RESTful service which applies iptables rules for individual IP addresses on request from remote client.   
+Firewall with remote control. rfw is the RESTful service which applies iptables rules for individual IP addresses on request from a remote client.   
 rfw maintains the list of blocked IP addresses which may be updated in real time from many sources. rfw also solves the problem of concurrent modifications to iptables since the requests are serialized. 
 
 Typical use cases
@@ -46,7 +46,7 @@ For a couple of reasons:
 - Security, trust and permission management. The above tools require giving a remote client the ssh root acces. Often we want to allow the IP analytics server to be able to block selected IPs without giving admin rights.
 - Performance - handle frequent and concurrent requests
 - No dependencies and easy to talk to from any platform and language. RESTful - lingua franca of the Internet
-- Protection against locking yourself out by applying erroneous rule
+- Protection against locking yourself out by applying wrong rule
 
 Note that when the rules come from variuos sources they may interact badly. For firewalls the order of rules matters. That's why the functionality of remote rfw is limited to blocking individual IPs inserted in front of the ruleset. Be careful when using local rfwc where you have the full power of iptables at hand. 
 
@@ -61,12 +61,13 @@ rfw is intended for hosts with static IP addresses. It includes both servers and
 
 **Q: Is it secure?**
 
-Tampering with core firewall should never be taken lightly. rfw must be run with root-like privileges in order to modify iptables so it requires a lot of trust in the software. 
+Tampering with the core firewall should never be taken lightly. rfw must be run with root privileges in order to modify iptables so it requires a lot of trust in the software. 
 There is a trade-off 
-Sometimes there is no choice and you need to automate firewall actions anyway. While rfw is designed with distributed system in mind, it may improve security even for a single box by:
+Sometimes there is no choice and you have to automate firewall actions across individual boxes anyway. Then rfw makes it more secure because the remote client does not need the full access to the host and can only block/allow individual IP addresses using rfw API.
+While rfw is designed with distributed system in mind, it may also improve security even for a single box by:
 - limiting iptables functionality to operate only on individual IP addresses
 - whitelisting selected IP addresses to prevent lock out
-- serializing iptables modification
+- serializing iptables modifications
 
 it provides advantage over changing iptables manually.
 
@@ -74,7 +75,7 @@ Security of rfw was the primary concern from the very beginning and influenced t
 - simplicity - no fancy features
 - no external dependencies except iptables
 - limited functionality - no generic rules
-- not performance-optimal but conservative choice of time-proven crypto: 2048-bit RSA based SSL with HTTP Basic Authentication
+- not performance-optimal but conservative choice of time-proven crypto: 2048-bit RSA based SSL with HTTP Basic Authentication. TODO: Consider ECDSA and check HTTPS clients compatibility
 
 
 

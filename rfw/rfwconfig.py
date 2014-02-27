@@ -1,5 +1,7 @@
 import logging, sys, types, os.path, re, config, iputil
 
+log = logging.getLogger('rfw.rfwconfig')
+
 class RfwConfig(config.Config):
 
     def __init__(self, path):
