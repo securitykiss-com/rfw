@@ -182,6 +182,10 @@ Design choices
 Note that HTTPS is not the perfect choice protocol here since by default it authenticates the server while we need to authenticate the client. Anyway we want to use standard protocols here so we stick to the SSL + basic authentication scheme commonly used on the web. SSL authenticates the server with certificates while shared username + password authenticates the client. Client certificates in HTTPS are possible but not all client libraries support it; also it would complicate deployment. 
 
 
+Run rfw without installing:
+sudo ./rfw -f config/rfw.conf
+
+
 
 Testing with curl:  
 curl -v --insecure --user mietek:passwd https://localhost:8443/input/eth/3.4.5.6

@@ -79,7 +79,7 @@ def set_logging(log, loglevel, logfile):
     except IOError, e:
         print str(e)
         if e.errno == 13:
-            print "Problem with writing logs to {}. Do you have sufficient privileges?".format(e.filename)
+            print "Problem with writing logs to {}. You need to be root.".format(e.filename)
         elif e.errno == 21:
             print "Problem with writing logs to {}.".format(e.filename)
         sys.exit(1)
