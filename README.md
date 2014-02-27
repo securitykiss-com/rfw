@@ -81,9 +81,8 @@ Security of rfw was the primary concern from the very beginning and influenced t
 
 TODO
 ---------------------------------
-- Start with a single argument -f config file. Default /etc/rfw/rfw.conf
 - Write config file first to refine requirements
-- Logging to syslog. When started log whitelisted (ignored) ips.
+- Logging. When started log whitelisted (ignored) ips.
 - Ignored IP list. The list of IPs which are never applied on iptables. Should HTTP response be different or just log and ignore?
 - Ruleset order: blocked ips DROP, ACCEPT ignored IPs [on rfw port], all IPs on rfw port DROP, the rest.
 - /etc/rfw/white.list and /etc/rfw/black.list. Locations relative to config file and overridable in config file.
@@ -104,12 +103,10 @@ TODO
         - as rfwc without command line options but reading scripts from standard input - asynchronous
         - as above but with -b batch_file.sh option instead of standard input - asynchronous
         - if you want the 2 above make synchronous i.e. to wait for the rfw to finish processing iptables commands, simply call rfwc again with --wait flag. There should be a special call to rfw that does not return response until the queue is empty.
-- rfw config file options: in rfw.conf
 - The default use case should be DROP individual IP on INPUT chain. Make the action (DROP/ACCEPT) configurable. It may be useful for FORWARD chain.
 - python packaging and release scripts
 - documentation
 - run as daemon (check fail2ban code)
-- intercept SIG_TERM and SIG_INT for graceful termination
 - add --non-daemon option at rfw startup
 - implement timeouts - check fail2ban
 

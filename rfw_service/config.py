@@ -60,14 +60,19 @@ class Config:
 
 
 
-def set_logging(log, loglevel, logfile):
-    """Configure standard logging for the application. One ERROR level handler to stderr and one file handler with specified loglevel to logfile.
+def set_logging(log, loglevelnum, logfile):
+    """Configure standard logging for the application. One ERROR level handler to stderr and one file handler with specified loglevelnum to logfile.
         log argument is the main (parent) application logger.
     """
+    # Prevent common error in using this API: loglevelnum is numeric
+    if not loglevelnum in [logging.NOTSET, logging.DEBUG, logging.INFO, logging.WARNING, logging.ERROR, logging.CRITICAL]:
+        print "Incorrect loglevel value"
+        sys.exit(1)
+
     try:
-        log.setLevel(loglevel)
+        log.setLevel(loglevelnum)
         fh = logging.FileHandler(logfile)
-        fh.setLevel(loglevel)
+        fh.setLevel(loglevelnum)
         fh.setFormatter(logging.Formatter('%(asctime)s %(levelname)-8s %(filename)s:%(lineno)d.%(funcName)s() - %(message)s'))
         log.addHandler(fh)
         ch = logging.StreamHandler()

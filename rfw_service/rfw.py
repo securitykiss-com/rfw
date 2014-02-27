@@ -99,7 +99,7 @@ def create_args_parser():
     LOG_FILE = '/var/log/rfw.log'
     parser = argparse.ArgumentParser(description='rfw - Remote Firewall')
     parser.add_argument('-f', default=CONFIG_FILE, metavar='CONFIGFILE', dest='configfile', help='rfw config file (default {})'.format(CONFIG_FILE))
-    parser.add_argument('--loglevel', default=LOG_LEVEL, help='Log level (default {})'.format(LOG_LEVEL), choices=['DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL'])
+    parser.add_argument('--loglevel', default=LOG_LEVEL, help='Log level (default {})'.format(LOG_LEVEL), choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'])
     parser.add_argument('--logfile', default=LOG_FILE, help='Log file (default {})'.format(LOG_FILE))
     parser.add_argument('-v', help='The same as \'--loglevel DEBUG\'', action='store_true')
     return parser
@@ -107,6 +107,10 @@ def create_args_parser():
 def parse_args():
     parser = create_args_parser()
     args = parser.parse_args()
+    if args.v:
+        args.loglevel = 'DEBUG'
+    # TODO
+    args.loglevelnum = getattr(logging, args.loglevel)
     return args
 
 
@@ -192,14 +196,14 @@ def startup_sanity_check(rfwconf):
     try:
         cmdexe.call([ipt, '-h'])
     except OSError, e:
-        log.fatal("Could not find {}. Check if it is correctly installed.".format(ipt))
+        log.critical("Could not find {}. Check if it is correctly installed.".format(ipt))
         sys.exit(1)
 
     # checking if root - iptables installed but cannot list rules
     try:
         cmdexe.call([ipt, '-n', '-L', 'OUTPUT'])
     except subprocess.CalledProcessError, e:
-        log.fatal("No access to iptables. The program requires root privileges.")
+        log.critical("No access to iptables. The program requires root privileges.")
         sys.exit(1)
 
     #TODO check if iptables is not pointing to rfwc
@@ -220,9 +224,9 @@ def stop():
 def main():
 
     args = parse_args()
-    config.set_logging(log, args.loglevel, args.logfile)
+    config.set_logging(log, args.loglevelnum, args.logfile)
 
-    # print args.loglevel, args.logfile, args.configfile
+    # print args.loglevelnum, args.logfile, args.configfile
 
     try:
         rfwconf = rfwconfig.RfwConfig(args.configfile)
@@ -232,6 +236,13 @@ def main():
         sys.exit(1)
 
     startup_sanity_check(rfwconf)
+
+    
+    log.info("Starting rfw server")
+    log.info("Whitelisted IP addresses that will be ignored:")
+    for a in rfwconf.whitelist():
+        log.info(a)
+
 
     # Install signal handlers
     signal.signal(signal.SIGTERM, __sigTERMhandler)
