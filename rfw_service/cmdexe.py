@@ -51,10 +51,11 @@ def iptables_construct(modify, rcmd):
     if chain == 'FORWARD':
         # for FORWARD chain iface2 and ip2 are not mandatory
         iface2 = rcmd.get('iface2')
-        iptf2 = _convert_iface(iface2)
-        if iptf2:
-            lcmd.append('-o')
-            lcmd.append(iptf2)
+        if iface2:
+            iptf2 = _convert_iface(iface2)
+            if iptf2:
+                lcmd.append('-o')
+                lcmd.append(iptf2)
         ip2 = rcmd.get('ip2')
         if ip2:
             lcmd.append('-d')
@@ -175,12 +176,12 @@ def call(lcmd):
 
 
 if __name__ == "__main__":
-    print iptables_construct('I', {'chain': 'input', 'iface1': 'eth', 'ip1': '11.22.33.44', 'timeout': '3600'})
-    print iptables_construct('I', {'chain': 'output', 'iface1': 'eth0', 'ip1': '11.22.33.44', 'timeout': '3600'})
-    print iptables_construct('I', {'chain': 'input', 'iface1': 'any', 'ip1': '11.22.33.44', 'timeout': '3600'})
-    print iptables_construct('D', {'chain': 'forward', 'iface1': 'ppp', 'ip1': '11.22.33.44', 'timeout': '3600'})
-    print iptables_construct('I', {'chain': 'forward', 'iface1': 'ppp', 'ip1': '11.22.33.44', 'iface2': 'eth0', 'timeout': '3600'})
-    print iptables_construct('I', {'chain': 'forward', 'iface1': 'ppp', 'ip1': '11.22.33.44', 'ip2': '5.6.7.8', 'timeout': '3600'})
-    print iptables_construct('I', {'chain': 'forward', 'iface1': 'ppp', 'ip1': '11.22.33.44', 'iface2': 'eth0', 'ip2': '5.6.7.8', 'timeout': '3600'})
+    print iptables_construct('I', {'action': 'DROP', 'chain': 'input', 'iface1': 'eth', 'ip1': '11.22.33.44', 'expire': '3600'})
+    print iptables_construct('I', {'action': 'ACCEPT', 'chain': 'output', 'iface1': 'eth0', 'ip1': '11.22.33.44', 'expire': '3600'})
+    print iptables_construct('I', {'action': 'DROP', 'chain': 'input', 'iface1': 'any', 'ip1': '11.22.33.44', 'expire': '3600'})
+    print iptables_construct('D', {'action': 'ACCEPT', 'chain': 'forward', 'iface1': 'ppp', 'ip1': '11.22.33.44', 'expire': '3600'})
+    print iptables_construct('I', {'action': 'DROP', 'chain': 'forward', 'iface1': 'ppp', 'ip1': '11.22.33.44', 'iface2': 'eth0', 'expire': '3600'})
+    print iptables_construct('I', {'action': 'DROP', 'chain': 'forward', 'iface1': 'ppp', 'ip1': '11.22.33.44', 'ip2': '5.6.7.8', 'expire': '3600'})
+    print iptables_construct('I', {'action': 'DROP', 'chain': 'forward', 'iface1': 'ppp', 'ip1': '11.22.33.44', 'iface2': 'eth0', 'ip2': '5.6.7.8', 'expire': '3600'})
 
 

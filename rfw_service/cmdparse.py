@@ -79,11 +79,11 @@ def parse_command_query(query):
     params = dict(urlparse.parse_qsl(query))
     ret = {}
     
-    timeout = params.get('timeout')
-    if timeout:
-        m = re.match(r"(\d{1,9})([smhd]?)$", timeout)  # seconds, minutes, hours or days. If none given, seconds assumed.
+    expire = params.get('expire')
+    if expire:
+        m = re.match(r"(\d{1,9})([smhd]?)$", expire)  # seconds, minutes, hours or days. If none given, seconds assumed.
         if not m:
-            ret['error'] = 'Wrong timeout parameter value'
+            ret['error'] = 'Wrong expire parameter value'
             return ret
         t = int(m.group(1))
         unit = m.group(2)
@@ -94,7 +94,7 @@ def parse_command_query(query):
             multiplier = 3600
         elif unit == 'd':
             multiplier = 86400
-        ret['timeout'] = str(t * multiplier)
+        ret['expire'] = str(t * multiplier)
 
     wait = params.get('wait')
     if wait:
@@ -111,15 +111,15 @@ def parse_command_query(query):
 def parse_command(url):
     """
     return dict with command elements like:
-    {'chain': 'input', 'iface1': 'eth', 'ip1': '11.22.33.44', 'timeout': '3600'}
+    {'chain': 'input', 'iface1': 'eth', 'ip1': '11.22.33.44', 'expire': '3600'}
     chain == input implies that ip1 is a source address
     chain == output implies that ip1 is a destination address
     """
     # split input to path and query
     parsed = urlparse.urlparse(url)
     path, query = parsed.path, parsed.query
-    print("{:<30}{}".format("path part:", path))
-    print("{:<30}{}".format("query part:", query))
+    #print("{:<30}{}".format("path part:", path))
+    #print("{:<30}{}".format("query part:", query))
 
     ret = parse_command_path(path)
     ret.update(parse_command_query(query))

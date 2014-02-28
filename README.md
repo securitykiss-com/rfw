@@ -82,7 +82,6 @@ Security of rfw was the primary concern from the very beginning and influenced t
 TODO
 ---------------------------------
 - Write config file first to refine requirements
-- Logging. When started log whitelisted (ignored) ips.
 - Ignored IP list. The list of IPs which are never applied on iptables. Should HTTP response be different or just log and ignore?
 - Ruleset order: blocked ips DROP, ACCEPT ignored IPs [on rfw port], all IPs on rfw port DROP, the rest.
 - /etc/rfw/white.list and /etc/rfw/black.list. Locations relative to config file and overridable in config file.
@@ -108,23 +107,23 @@ TODO
 - documentation
 - run as daemon (check fail2ban code)
 - add --non-daemon option at rfw startup
-- implement timeouts - check fail2ban
+- implement expire - check fail2ban
 
  
 REST queries:
 ---------------------------------
 - to modify INPUT chain:  
-PUT /input/input_iface/src_ip[?wait=true[&timeout=n_sec]]  
+PUT /input/input_iface/src_ip[?wait=true[&expire=n_sec]]  
 DELETE /input/input_iface/src_ip[?wait=true]  
 
 TODO add wait=true options in description
 
 - to modify OUTPUT chain:
-PUT /output/output_iface/dst_ip[?timeout=n_sec]  
+PUT /output/output_iface/dst_ip[?expire=n_sec]  
 DELETE /output/output_iface/dst_ip  
  
 - to modify FORWARD chain:
-PUT /forward/input_iface[/src_ip[/output_iface[/dst_ip[?timeout=n_sec]]]]  
+PUT /forward/input_iface[/src_ip[/output_iface[/dst_ip[?expire=n_sec]]]]  
 DELETE /forward/input_iface[/src_ip[/output_iface[/dst_ip]]]  
  
 - to list rules:
@@ -139,7 +138,7 @@ GET /
 Examples:
 ---------------------------------
 
-PUT /input/eth0/12.34.56.78?timeout=3600                ===   iptables -I INPUT -i eth0 -s 12.34.56.78 -j DROP with expiry 3600 seconds
+PUT /input/eth0/12.34.56.78?expire=3600                ===   iptables -I INPUT -i eth0 -s 12.34.56.78 -j DROP with expiry time 3600 seconds
 
 DELETE /input/eth0/12.34.56.78                          ===   iptables -D INPUT -i eth0 -s 12.34.56.78 -j DROP
 
