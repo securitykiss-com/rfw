@@ -3,6 +3,7 @@ import iputil
 
 log = logging.getLogger("rfw.cmdparse")
 
+# errors to be reported in the result and not with exceptions
 def _parse_command_path_raw(path):
     s = path
     ret = {}
@@ -14,11 +15,9 @@ def _parse_command_path_raw(path):
         return ret
     ret['chain'] = m.group(1)
     s = m.group(2)
-    if not s:
+    if not s or s == '/':
         return ret
 
-    #TODO add validation and error reporting. Currently wrong iface and ip are ignored    
-    # errors to be reported in the result and not with exceptions
     m = re.match(r"/(\w{2,8}\d{0,3})(/.*|$)", s)
     #TODO consider adding config option to allow only specified interfaces
     if not m:
@@ -26,7 +25,7 @@ def _parse_command_path_raw(path):
         return ret
     ret['iface1'] = m.group(1)
     s = m.group(2)
-    if not s:
+    if not s or s == '/':
         return ret
 
     m = re.match(r"/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(/.*|$)", s)
@@ -35,7 +34,7 @@ def _parse_command_path_raw(path):
         return ret
     ret['ip1'] = m.group(1)
     s = m.group(2)
-    if not s:
+    if not s or s == '/':
         return ret
 
     if ret.get('chain') == 'forward':
@@ -45,7 +44,7 @@ def _parse_command_path_raw(path):
             return ret
         ret['iface2'] = m.group(1)
         s = m.group(2)
-        if not s:
+        if not s or s == '/':
             return ret
 
         m = re.match(r"/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(/.*|$)", s)
@@ -126,33 +125,5 @@ def parse_command(url):
     ret.update(parse_command_query(query))
 
     return ret 
-
-
-if __name__ == '__main__':
-    # Some minimum testing 
-    def test_parse_command():
-        assert parse_command("/") == {}
-        assert parse_command("/blabla")['error']
-        assert parse_command("/input") == {'chain': 'input'}
-        assert parse_command("/input/") == {'chain': 'input'}
-        assert parse_command("/input/11.22.33.44") == {'chain': 'input'}
-        assert parse_command("/input/eth/11.22.33.44") == {'chain': 'input', 'iface1': 'eth', 'ip1': '11.22.33.44'}
-        assert parse_command("/input/eth/11.22.33.44/") == {'chain': 'input', 'iface1': 'eth', 'ip1': '11.22.33.44'}
-        assert parse_command("/input/eth/11.22.3333.44/") == {'chain': 'input', 'iface1': 'eth'}
-        assert parse_command("/input/eth/11.22.33.4444/") == {'chain': 'input', 'iface1': 'eth'}
-        assert parse_command("/inputer")['error'] 
-        assert parse_command("/input/eth/11.22.33.44?timeout=3600") == {'chain': 'input', 'iface1': 'eth', 'ip1': '11.22.33.44', 'timeout': '3600'}
-        assert parse_command("/input/eth/11.22.33.44?timeout=20s") == {'chain': 'input', 'iface1': 'eth', 'ip1': '11.22.33.44', 'timeout': '20'}
-        assert parse_command("/input/eth/11.22.33.44?timeout=10m") == {'chain': 'input', 'iface1': 'eth', 'ip1': '11.22.33.44', 'timeout': '600'}
-        assert parse_command("/input/eth/11.22.33.44?timeout=2h") == {'chain': 'input', 'iface1': 'eth', 'ip1': '11.22.33.44', 'timeout': '7200'}
-        assert parse_command("/input/eth/11.22.33.44?timeout=2d") == {'chain': 'input', 'iface1': 'eth', 'ip1': '11.22.33.44', 'timeout': '172800'}
-        assert parse_command("/input/eth/11.22.33.44/?timeout=3600&wait=true") == {'chain': 'input', 'iface1': 'eth', 'ip1': '11.22.33.44', 'timeout': '3600', 'wait': 'true'}
-        assert parse_command("/input/eth/11.22.33.44/ppp") == {'chain': 'input', 'iface1': 'eth', 'ip1': '11.22.33.44'}
-        assert parse_command("/forward/eth/11.22.33.44/ppp") == {'chain': 'forward', 'iface1': 'eth', 'ip1': '11.22.33.44', 'iface2': 'ppp'}
-        assert parse_command("/forward/eth/11.22.33.44/ppp12/") == {'chain': 'forward', 'iface1': 'eth', 'ip1': '11.22.33.44', 'iface2': 'ppp12'}
-        assert parse_command("/forward/eth/11.22.33.44/ppp12/55.66.77.88") == {'chain': 'forward', 'iface1': 'eth', 'ip1': '11.22.33.44', 'iface2': 'ppp12', 'ip2': '55.66.77.88'}
-        print(sys._getframe().f_code.co_name + " passed")
-
-    test_parse_command()
 
 

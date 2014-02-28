@@ -190,22 +190,6 @@ class RfwConfig(config.Config):
 
 
 
-# test particular config file. Results must be compared manually
-if __name__ == "__main__":
-
-    #TODO write more generic tests
-    rfwconf = RfwConfig("rfw.conf")
-
-    print(rfwconf.auth_password())
-
-    module = sys.modules[__name__]
-    # take all attributes of the module
-    attrs = [getattr(module, name, None) for name in dir()]
-    # filter for function without arguments
-    #fs = filter(lambda a: isinstance(a, types.FunctionType) and a.func_code.co_argcount == 0, attrs)
-    fs = [a for a in attrs if isinstance(a, types.FunctionType) and a.func_code.co_argcount == 0]
-    for f in fs:
-        print("%s = %s" % (f.__name__, f()))
 
 
 
