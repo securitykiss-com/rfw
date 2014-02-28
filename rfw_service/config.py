@@ -1,3 +1,4 @@
+from __future__ import print_function
 import logging, sys, types, os.path, re
 from ConfigParser import RawConfigParser, NoOptionError
 
@@ -7,6 +8,8 @@ from ConfigParser import RawConfigParser, NoOptionError
 log = logging.getLogger('lib.{}'.format(__name__))
 log.addHandler(logging.NullHandler())
 
+def perr(msg):
+    print(msg, file=sys.stderr)
 
 class Config:
     def __init__(self, path, section="config"):
@@ -52,7 +55,6 @@ class Config:
         """Log config error and exit with error code
         """
         log.error("Configuration error in {}: {}".format(self.path, msg))
-        print("Configuration error in {}: {}".format(self.path, msg))
         sys.exit(1)
 
 
@@ -66,7 +68,7 @@ def set_logging(log, loglevelnum, logfile):
     """
     # Prevent common error in using this API: loglevelnum is numeric
     if not loglevelnum in [logging.NOTSET, logging.DEBUG, logging.INFO, logging.WARNING, logging.ERROR, logging.CRITICAL]:
-        print "Incorrect loglevel value"
+        log.error("Incorrect loglevel value")
         sys.exit(1)
 
     try:
@@ -82,11 +84,9 @@ def set_logging(log, loglevelnum, logfile):
         # add log file handler for libraries according to the logging convention
         logging.getLogger('lib').addHandler(fh)    
     except IOError, e:
-        print str(e)
+        perr(e)
         if e.errno == 13:
-            print "Problem with writing logs to {}. You need to be root.".format(e.filename)
-        elif e.errno == 21:
-            print "Problem with writing logs to {}.".format(e.filename)
+            perr('You need to be root')
         sys.exit(1)
 
 

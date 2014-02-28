@@ -1,3 +1,4 @@
+from __future__ import print_function
 import argparse, logging, re, sys, struct, socket, subprocess, signal
 from Queue import Queue
 from threading import Thread
@@ -7,6 +8,8 @@ from sslserver import SSLServer, BasicAuthRequestHandler
    
 log = logging.getLogger('rfw')
 
+def perr(msg):
+    print(msg, file=sys.stderr)
 
 
 def create_requesthandler(rfwconf, cmd_queue):
@@ -145,7 +148,7 @@ def process_commands(cmd_queue, whitelist):
         # read (modify, rcmd) tuple from the queue
         modify, rcmd = cmd_queue.get()
         
-        print "Got from Queue:\n{}".format(rcmd)
+        print("Got from Queue:\n{}".format(rcmd))
 
         rule_exists = rcmd in rcmds
 
@@ -212,7 +215,7 @@ def startup_sanity_check(rfwconf):
 
 def __sigTERMhandler(signum, frame):
     log.debug("Caught signal {}. Exiting".format(signum))
-    print
+    perr('')
     stop()
 
 def stop():
@@ -226,12 +229,12 @@ def main():
     args = parse_args()
     config.set_logging(log, args.loglevelnum, args.logfile)
 
-    # print args.loglevelnum, args.logfile, args.configfile
+    # print(args.loglevelnum, args.logfile, args.configfile)
 
     try:
         rfwconf = rfwconfig.RfwConfig(args.configfile)
     except IOError, e:
-        print(e.message)
+        perr(e.message)
         create_args_parser().print_usage()
         sys.exit(1)
 
@@ -253,10 +256,10 @@ def main():
     rules = cmdexe.iptables_list()
     rcmds = cmdexe.rules_to_rcmds(rules)
 
-    print "\nrules\n===============\n"
-    print "\n".join(map(str, rules))
-    print "\nrcmds\n===============\n"
-    print "\n".join(map(str, rcmds))
+    print("\nrules\n===============\n")
+    print("\n".join(map(str, rules)))
+    print("\nrcmds\n===============\n")
+    print("\n".join(map(str, rcmds)))
 
 
 
@@ -277,7 +280,7 @@ def main():
                     rfwconf.outward_server_certfile(), 
                     rfwconf.outward_server_keyfile())
         sa = httpd.socket.getsockname()
-        print "Serving HTTPS on", sa[0], "port", sa[1], "..."
+        print("Serving HTTPS on", sa[0], "port", sa[1], "...")
         httpd.serve_forever()
 
     
