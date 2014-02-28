@@ -1,4 +1,5 @@
-import logging, sys, types, os.path, re, config, iputil
+import logging, sys, types, os.path, re
+import config, iputil, timeutil
 
 log = logging.getLogger('rfw.rfwconfig')
 
@@ -27,6 +28,7 @@ class RfwConfig(config.Config):
         self.whitelist_file()
         self.whitelist()  # it will also cache the whitelist result
         self.iptables_path()
+        self.default_expire()
             
  
 
@@ -189,7 +191,15 @@ class RfwConfig(config.Config):
             self._configexit("iptables.path cannot be empty")
 
 
-
+    def default_expire(self):
+        exp = self._get('default.expire')
+        if not exp:
+            self._configexit("default.expire missing")
+        interval = timeutil.parse_interval(exp)
+        if interval is None:
+            self._configexit("default.expire missing or incorrect format")
+        else:
+            return str(interval)
 
 
 

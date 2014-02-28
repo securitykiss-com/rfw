@@ -54,7 +54,7 @@ class Config:
     def _configexit(self, msg):
         """Log config error and exit with error code
         """
-        log.error("Configuration error in {}: {}".format(self.path, msg))
+        perr("Configuration error in {}: {}".format(self.path, msg))
         sys.exit(1)
 
 

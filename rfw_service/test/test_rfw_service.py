@@ -1,8 +1,8 @@
-import unittest
+from unittest import TestCase
 
-import cmdparse, cmdexe
+import cmdparse, cmdexe, timeutil
 
-class CmdParseTest(unittest.TestCase):
+class CmdParseTest(TestCase):
 
 
     def test_parse_command(self):
@@ -48,6 +48,9 @@ class CmdParseTest(unittest.TestCase):
                 {'chain': 'forward', 'iface1': 'eth', 'ip1': '11.22.33.44', 'iface2': 'ppp12', 'ip2': '55.66.77.88'} )
 
 
+
+class CmdExeTest(TestCase):
+
     def test_iptables_construct(self):
         self.assertEqual( cmdexe.iptables_construct('I', {'action': 'DROP', 'chain': 'input', 'iface1': 'eth', 'ip1': '11.22.33.44', 'expire': '3600'}), 
                 ['iptables', '-I', 'INPUT', '-i', 'eth+', '-s', '11.22.33.44', '-j', 'DROP'] )
@@ -63,4 +66,20 @@ class CmdParseTest(unittest.TestCase):
                 ['iptables', '-I', 'FORWARD', '-i', 'ppp+', '-s', '11.22.33.44', '-d', '5.6.7.8', '-j', 'DROP'] )
         self.assertEqual( cmdexe.iptables_construct('I', {'action': 'DROP', 'chain': 'forward', 'iface1': 'ppp', 'ip1': '11.22.33.44', 'iface2': 'eth0', 'ip2': '5.6.7.8', 'expire': '3600'}), 
                 ['iptables', '-I', 'FORWARD', '-i', 'ppp+', '-s', '11.22.33.44', '-o', 'eth0', '-d', '5.6.7.8', '-j', 'DROP'] )
+
+#TODO extract reusable libraries along with testcases
+class TimeUtilTest(TestCase):
+    
+    def test_parse_interval(self):
+        self.assertEqual( timeutil.parse_interval('350'), 350 )
+        self.assertEqual( timeutil.parse_interval('20000s'), 20000 )
+        self.assertEqual( timeutil.parse_interval('10m'), 600 )
+        self.assertEqual( timeutil.parse_interval('2h'), 7200 )
+        self.assertEqual( timeutil.parse_interval('10d'), 864000 )
+        self.assertEqual( timeutil.parse_interval('0'), 0 )
+        self.assertEqual( timeutil.parse_interval('0m'), 0 )
+        self.assertEqual( timeutil.parse_interval('-3'), None )
+        self.assertEqual( timeutil.parse_interval('10u'), None )
+        self.assertEqual( timeutil.parse_interval('abc'), None )
+        self.assertEqual( timeutil.parse_interval(''), None )
 

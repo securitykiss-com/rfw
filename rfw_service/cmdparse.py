@@ -1,7 +1,11 @@
 import sys, logging, urlparse, re
-import iputil
+import iputil, timeutil
 
 log = logging.getLogger("rfw.cmdparse")
+
+
+
+
 
 # errors to be reported in the result and not with exceptions
 def _parse_command_path_raw(path):
@@ -81,20 +85,11 @@ def parse_command_query(query):
     
     expire = params.get('expire')
     if expire:
-        m = re.match(r"(\d{1,9})([smhd]?)$", expire)  # seconds, minutes, hours or days. If none given, seconds assumed.
-        if not m:
+        interval = timeutil.parse_interval(expire)
+        if interval is None:
             ret['error'] = 'Wrong expire parameter value'
             return ret
-        t = int(m.group(1))
-        unit = m.group(2)
-        multiplier = 1
-        if unit == 'm':
-            multiplier = 60
-        elif unit == 'h':
-            multiplier = 3600
-        elif unit == 'd':
-            multiplier = 86400
-        ret['expire'] = str(t * multiplier)
+        ret['expire'] = str(interval)
 
     wait = params.get('wait')
     if wait:

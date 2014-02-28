@@ -107,7 +107,8 @@ TODO
 - documentation
 - run as daemon (check fail2ban code)
 - add --non-daemon option at rfw startup
-- implement expire - check fail2ban
+- implement expire - put commands with expire to priority queue and poll in loop
+- should rfw have default expire time? Make it configurable, non-positive value => no expire
 
  
 REST queries:

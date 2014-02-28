@@ -149,20 +149,6 @@ def rules_to_rcmds(rules):
     return rcmds
 
 
-            
-
-
-
-        
-    
-
-
-
-
-
-
-
-
 def call(lcmd):
     try:
         out = subprocess.check_output(lcmd, stderr=subprocess.STDOUT)
@@ -175,13 +161,5 @@ def call(lcmd):
 
 
 
-if __name__ == "__main__":
-    print iptables_construct('I', {'action': 'DROP', 'chain': 'input', 'iface1': 'eth', 'ip1': '11.22.33.44', 'expire': '3600'})
-    print iptables_construct('I', {'action': 'ACCEPT', 'chain': 'output', 'iface1': 'eth0', 'ip1': '11.22.33.44', 'expire': '3600'})
-    print iptables_construct('I', {'action': 'DROP', 'chain': 'input', 'iface1': 'any', 'ip1': '11.22.33.44', 'expire': '3600'})
-    print iptables_construct('D', {'action': 'ACCEPT', 'chain': 'forward', 'iface1': 'ppp', 'ip1': '11.22.33.44', 'expire': '3600'})
-    print iptables_construct('I', {'action': 'DROP', 'chain': 'forward', 'iface1': 'ppp', 'ip1': '11.22.33.44', 'iface2': 'eth0', 'expire': '3600'})
-    print iptables_construct('I', {'action': 'DROP', 'chain': 'forward', 'iface1': 'ppp', 'ip1': '11.22.33.44', 'ip2': '5.6.7.8', 'expire': '3600'})
-    print iptables_construct('I', {'action': 'DROP', 'chain': 'forward', 'iface1': 'ppp', 'ip1': '11.22.33.44', 'iface2': 'eth0', 'ip2': '5.6.7.8', 'expire': '3600'})
 
 
