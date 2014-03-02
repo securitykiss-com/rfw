@@ -1,8 +1,8 @@
 from __future__ import print_function
 import argparse, logging, re, sys, struct, socket, subprocess, signal
-from Queue import Queue
+from Queue import Queue, PriorityQueue
 from threading import Thread
-import config, rfwconfig, cmdparse, cmdexe, iputil
+import config, rfwconfig, cmdparse, cmdexe, iputil, rfwthreads
 from sslserver import SSLServer, BasicAuthRequestHandler
 
    
@@ -12,7 +12,7 @@ def perr(msg):
     print(msg, file=sys.stderr)
 
 
-def create_requesthandler(rfwconf, cmd_queue):
+def create_requesthandler(rfwconf, cmd_queue, expiry_queue):
     """Create RequestHandler type. This is a way to avoid global variables: a closure returning a class type that binds rfwconf and cmd_queue inside. 
     """
     class RequestHandler(BasicAuthRequestHandler):
@@ -59,6 +59,9 @@ def create_requesthandler(rfwconf, cmd_queue):
 
             
             cmd_queue.put_nowait(tup)
+
+
+            #TODO put to expiry_queue as well
 
             content = str(tup)
     
@@ -115,80 +118,6 @@ def parse_args():
     # TODO
     args.loglevelnum = getattr(logging, args.loglevel)
     return args
-
-
-def process_commands(cmd_queue, whitelist):
-    def is_ip_ignored(ip, whitelist, modify, rcmd):
-        """Prevent adding DROP rules and prevent deleting ACCEPT rules for whitelisted IPs.
-        Also log the such attempts as warnings.
-        """
-        action = rcmd['action']
-        if iputil.in_iplist(ip, whitelist):
-            if (modify == 'I' and action == 'DROP') or (modify == 'D' and action == 'ACCEPT'):
-                log.warn("Request {} related to whitelisted IP address {} ignored.".format(str(rcmd), ip))
-                return True
-        return False
- 
-    def apply_rule(modify, rcmd):
-        lcmd = cmdexe.iptables_construct(modify, rcmd)
-        out = cmdexe.call(lcmd)
-        if out:
-            log.warn("Non empty output from the command: {}. The output: '{}'".format(lcmd, out))
-        return out
-
-
-    #TODO iptables_list() here  and store in local var?
-    rules = cmdexe.iptables_list()
-    rcmds = cmdexe.rules_to_rcmds(rules)
-
-    #TODO make sure if the rcmds format from iptables_list()/rules_to_rcmds() conforms to REST rcmds from cmdparse 
-    #TODO add consistency checks
-
-    while True:
-        # read (modify, rcmd) tuple from the queue
-        modify, rcmd = cmd_queue.get()
-        
-        print("Got from Queue:\n{}".format(rcmd))
-
-        rule_exists = rcmd in rcmds
-
-
-        action = rcmd['action']
-        chain = rcmd['chain']
-
-        ip1 = rcmd['ip1']
-        if is_ip_ignored(ip1, whitelist, modify, rcmd): 
-            cmd_queue.task_done()
-            continue
-        
-        if chain == 'forward':
-            ip2 = rcmd.get('ip2')
-            if is_ip_ignored(ip2, whitelist, modify, rcmd):
-                cmd_queue.task_done()
-                continue
-
-
-        # check for duplicates, apply rule
-        #TODO compare with memory model, make it robust, reread the model with iptables_list() if necessary (append 'L' rcmd to the queue, so it will be applied in the next loop iteration) 
-        if modify == 'I':
-            if rule_exists:
-                log.warn("Trying to insert existing rule: {}. Command ignored.".format(rcmd))
-            else:
-                apply_rule(modify, rcmd)
-                log.info("Inserting the rule: {}".format(rcmd))
-        elif modify == 'D':
-            if rule_exists:
-                apply_rule(modify, rcmd)
-                log.info("Deleting the rule: {}".format(rcmd))
-            else:
-                log.warn("Trying to delete not existing rule: {}. Command ignored.".format(rcmd))
-        elif modify == 'L':
-            #TODO rereading the iptables?
-            pass
-
-        #TODO put it in finally block
-        cmd_queue.task_done()
-
 
 
 def startup_sanity_check(rfwconf):
@@ -262,16 +191,17 @@ def main():
     print("\n".join(map(str, rcmds)))
 
 
-
-
+    expiry_queue = PriorityQueue()
     cmd_queue = Queue()
-    consumer = Thread(target=process_commands, args=(cmd_queue, rfwconf.whitelist()))
-    consumer.setDaemon(True)
-    consumer.start()
+
+    rfwthreads.CommandProcessor(cmd_queue, rfwconf.whitelist()).start()
+
+    rfwthreads.ExpiryManager(cmd_queue, expiry_queue).start()
+
 
     # Passing HandlerClass to SSLServer is very limiting, seems like a bad design of BaseServer. 
     # In order to pass extra info to RequestHandler without using global variable we have to wrap the class in closure.
-    HandlerClass = create_requesthandler(rfwconf, cmd_queue)
+    HandlerClass = create_requesthandler(rfwconf, cmd_queue, expiry_queue)
     if rfwconf.is_outward_server():
         server_address = (rfwconf.outward_server_ip(), int(rfwconf.outward_server_port()))
         httpd = SSLServer(
