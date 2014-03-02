@@ -149,6 +149,16 @@ def rules_to_rcmds(rules):
     return rcmds
 
 
+
+
+def apply_rule(modify, rcmd):
+    lcmd = iptables_construct(modify, rcmd)
+    out = call(lcmd)
+    if out:
+        log.warn("Non empty output from the command: {}. The output: '{}'".format(lcmd, out))
+    return out
+
+
 def call(lcmd):
     try:
         out = subprocess.check_output(lcmd, stderr=subprocess.STDOUT)

@@ -52,18 +52,26 @@ def create_requesthandler(rfwconf, cmd_queue, expiry_queue):
             assert action in ['DROP', 'ACCEPT']
 
             rcmd['action'] = action
-            
+           
+            #TODO before inserting to the queues make the whitelist/ignored IPs check
+            #TODO move that check from CommandProcessor here
+ 
 
-            tup = (modify, rcmd)
-            print("command2 tup: %s" % str(tup))
-
-            
-            cmd_queue.put_nowait(tup)
+            ctup = (modify, rcmd)
+            print("command2 ctup: %s" % str(ctup))
+            cmd_queue.put_nowait(ctup)
 
 
-            #TODO put to expiry_queue as well
+            # if command is not permanent, put the command to expiry_queue as well
+            expire = rcmd.get('expire', rfwconf.default_expire())
+            assert isinstance(expire, str) and expire.isdigit()
+            # expire=0 means permanent rule which is not added to the expiry queue
+            if expire:
+                expiry_tstamp = time.time() + int(expire)
+                etup = (expiry_tstamp, rcmd)
+                expiry_queue.put_nowait(etup)
 
-            content = str(tup)
+            content = str(ctup)
     
             #request content can be read from rfile
             #inp = self.rfile.read(65000) # use Content-Length to know how many bytes to read

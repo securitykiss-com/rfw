@@ -25,12 +25,6 @@ class CommandProcessor(Thread):
                 return True
         return False
  
-    def apply_rule(self, modify, rcmd):
-        lcmd = cmdexe.iptables_construct(modify, rcmd)
-        out = cmdexe.call(lcmd)
-        if out:
-            log.warn("Non empty output from the command: {}. The output: '{}'".format(lcmd, out))
-        return out
 
 
     def run(self):
@@ -53,6 +47,7 @@ class CommandProcessor(Thread):
             action = rcmd['action']
             chain = rcmd['chain']
     
+            #TODO MOVE this check TO RequestHandler, to eliminate ignored IPs early and to prevent propagating them to expiry queue
             ip1 = rcmd['ip1']
             if self.is_ip_ignored(ip1, self.whitelist, modify, rcmd): 
                 self.cmd_queue.task_done()
@@ -64,18 +59,19 @@ class CommandProcessor(Thread):
                     self.cmd_queue.task_done()
                     continue
     
-    
+            
+
             # check for duplicates, apply rule
             #TODO compare with memory model, make it robust, reread the model with iptables_list() if necessary (append 'L' rcmd to the queue, so it will be applied in the next loop iteration) 
             if modify == 'I':
                 if rule_exists:
                     log.warn("Trying to insert existing rule: {}. Command ignored.".format(rcmd))
                 else:
-                    self.apply_rule(modify, rcmd)
+                    cmdexe.apply_rule(modify, rcmd)
                     log.info("Inserting the rule: {}".format(rcmd))
             elif modify == 'D':
                 if rule_exists:
-                    self.apply_rule(modify, rcmd)
+                    cmdexe.apply_rule(modify, rcmd)
                     log.info("Deleting the rule: {}".format(rcmd))
                 else:
                     log.warn("Trying to delete not existing rule: {}. Command ignored.".format(rcmd))
@@ -106,13 +102,39 @@ class ExpiryManager(Thread):
         self.expiry_queue = expiry_queue
         self.setDaemon(True)
 
-    def run(self):
-        while True:
-            #TODO move expired items from expiry_queue to cmd_queue
-            #TODO check for duplicates in priority queue?
 
+
+
+    
+    def run(self):
+        # Not thread safe! It's OK here because we have single producer and single consumer
+        def peek(q):
+            if q.queue:
+                return q.queue[0]
+            else:
+                return None
+
+        while True:
             log.error('Next step of expiry manager')
             time.sleep(ExpiryManager.POLL_INTERVAL)
+
+            # Move expired items from expiry_queue to cmd_queue
+            #TODO check for duplicates in priority queue?
+            p = peek(self.expiry_queue)
+            if p is None:
+                continue
+            expiry_tstamp, rcmd = p
+            # next candidate expires in future so skip
+            if expiry_tstamp > time.time():
+                continue
+            # get item with lowest priority score. It may be different (but certainly lower) from the one returned by peek() since peek() is not thread safe
+            expiry_tstamp, rcmd = self.expiry_queue.get()
+            # expire parameter is only for PUT commands so expiry_queue should only contain 'I' (insert) commands
+            # to expire the rule we delete 'D' the rule
+            #TODO make assert when putting to the queue
+            tup = ('D', rcmd)
+            self.cmd_queue.put_nowait(tup)
+
             
 
 

@@ -6,6 +6,7 @@ def parse_interval(t):
     - <number>s representing number of seconds
     - <number>h representing number of hours
     - <number>d representing number of days
+    Time can only be non-negative
     return converted number of seconds as integer or None if wrong format
     """
     t = t.strip()
