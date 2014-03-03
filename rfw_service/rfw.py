@@ -93,7 +93,7 @@ def create_requesthandler(rfwconf, cmd_queue, expiry_queue):
             cmd_queue.put_nowait(ctup)
 
            
-            # put non-permanent command also to the expiry_queue
+            # put time-bounded command to the expiry_queue
             # expire applies only for 'I' insert commands
             if modify == 'I': 
                 expire = rcmd.get('expire', rfwconf.default_expire())

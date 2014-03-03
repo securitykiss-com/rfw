@@ -19,7 +19,7 @@ Features
 - remote updates via RESTful API
 - secured with HTTPS
 - authenticated with basic authentication over SSL and by client source IP
-- keep IP whitelist (it's better to call it ignored IPs) to prevent locking access to the machine.
+- keep IP whitelist - commands related to whitelisted IPs will be ignored. This is to prevent locking access to the machine.
 - whitelist defined in config file, handle CIDR notation
 - act as the iptables guard
 - local client with syntax identical to iptables
@@ -81,11 +81,7 @@ Security of rfw was the primary concern from the very beginning and influenced t
 
 TODO
 ---------------------------------
-- Write config file first to refine requirements
-- Ignored IP list. The list of IPs which are never applied on iptables. Should HTTP response be different or just log and ignore?
 - Ruleset order: blocked ips DROP, ACCEPT ignored IPs [on rfw port], all IPs on rfw port DROP, the rest.
-- /etc/rfw/white.list and /etc/rfw/black.list. Locations relative to config file and overridable in config file.
-- Asynchronous processing. Single threaded http server pushing requests to the queue. Another iptables guard thread to consume from the queue.
 - use PUT and DELETE - should be idempotent. Give the option on non-restful requests with GET and additional ?verb=PUT/DELETE param in query
 - Clarify responsibilities of rfw and rfwc
     - rfw need to store credentials in config file so it shouldn't be mixed with rfwc
@@ -107,8 +103,6 @@ TODO
 - documentation
 - run as daemon (check fail2ban code)
 - add --non-daemon option at rfw startup
-- implement expire - put commands with expire to priority queue and poll in loop
-- should rfw have default expire time? Make it configurable, non-positive value => no expire
 - expire parameter only for INSERT/PUT commands ? Not clear what to do after expiry time of DELETE command, so let's apply this constraint (expire only for 'I' commands) 
  
 REST queries:
