@@ -20,24 +20,42 @@ def create_requesthandler(rfwconf, cmd_queue, expiry_queue):
         def creds_check(self, user, password):
             return user == rfwconf.auth_username() and password == rfwconf.auth_password()
     
+        def http_resp(self, code, content):
+            content = str(content)
+            self.send_response(code)
+            self.send_header("Content-Length", len(content) + 2)
+            self.end_headers()
+            self.wfile.write(content + "\r\n")
+            return
+ 
+
+
+
+        #TODO not sure if this extra complexity is necessary. Maybe ignore any whitelisted IP related commands?
+#        def is_ip_ignored(self, ip, whitelist, modify, rcmd):
+#            """Prevent adding DROP rules and prevent deleting ACCEPT rules for whitelisted IPs.
+#            Also log the such attempts as warnings.
+#            """
+#            action = rcmd['action']
+#            if iputil.in_iplist(ip, whitelist):
+#                if (modify == 'I' and action == 'DROP') or (modify == 'D' and action == 'ACCEPT'):
+#                    log.warn("Request {} related to whitelisted IP address {} ignored.".format(str(rcmd), ip))
+#                    return True
+#            return False
         
         # modify should be 'D' for Delete or 'I' for Insert understood as -D and -I iptables flags
         def add_command(self, modify):
             assert modify == 'D' or modify == 'I'
             print("self.path=" + self.path)
             
-            #TODO add error raising in parse_command and handle it here
+            # parse_command does not raise errors. Errors returned in response
             rcmd = cmdparse.parse_command(self.path)
 
-            print("command1: %s" % rcmd) 
-            if rcmd.get('error'):
-                content = rcmd['error']
-                self.send_response(400)  # Bad Request
-                self.send_header("Content-Length", len(content) + 2)
-                self.end_headers()
-                self.wfile.write(content + "\r\n")
-                return
-                
+            log.debug('Parsed command: {}'.format(rcmd))
+            
+            error = rcmd.get('error')
+            if error:
+                return self.http_resp(400, error) # Bad Request
             
             chain = rcmd['chain']
             if chain == 'input':
@@ -52,42 +70,45 @@ def create_requesthandler(rfwconf, cmd_queue, expiry_queue):
             assert action in ['DROP', 'ACCEPT']
 
             rcmd['action'] = action
-           
-            #TODO before inserting to the queues make the whitelist/ignored IPs check
-            #TODO move that check from CommandProcessor here
+            ctup = (modify, rcmd)
+            log.debug('Final command tuple: {}'.format(str(ctup)))
+
+            whitelist = rfwconf.whitelist()           
+
+            # eliminate ignored IP related commands early to prevent propagating them to expiry queue
+            ip1 = rcmd['ip1']
+            if iputil.in_iplist(ip1, whitelist):
+                log.warn("Request {} related to whitelisted IP address {} ignored.".format(str(rcmd), ip))
+                # It's more secure to return the same HTTP OK response even if the command is not executed. Don't give attacker extra info.
+                return self.http_resp(200, ctup)
+            
+            if chain == 'forward':
+                ip2 = rcmd.get('ip2')
+                if ip2 and iputil.in_iplist(ip2, whitelist):
+                    log.warn("Request {} related to whitelisted IP address {} ignored.".format(str(rcmd), ip))
+                    # It's more secure to return the same HTTP OK response even if the command is not executed. Don't give attacker extra info.
+                    return self.http_resp(200, ctup)
  
 
-            ctup = (modify, rcmd)
-            print("command2 ctup: %s" % str(ctup))
             cmd_queue.put_nowait(ctup)
 
-            content = str(ctup)
-
            
-            # put non-permanent command to expiry_queue as well
-            # expire applies only for 'I' insert commands            
+            # put non-permanent command also to the expiry_queue
+            # expire applies only for 'I' insert commands
             if modify == 'I': 
                 expire = rcmd.get('expire', rfwconf.default_expire())
                 assert isinstance(expire, str) and expire.isdigit()
                 # expire=0 means permanent rule which is not added to the expiry queue
                 if expire:
                     expiry_tstamp = time.time() + int(expire)
-                    etup = (expiry_tstamp, rcmd)
-                    expiry_queue.put_nowait(etup)
+                    extup = (expiry_tstamp, rcmd)
+                    expiry_queue.put_nowait(extup)
             else:
                 if 'expire' in rcmd:
-                    log.warn('expire paramter ignored for non-Insert command {}'.format(rcmd))
+                    log.warn('expire paramter ignored for non-Insert command {}'.format(ctup))
 
     
-            #request content can be read from rfile
-            #inp = self.rfile.read(65000) # use Content-Length to know how many bytes to read
-            #content = inp + "\r\n" + content
-    
-            self.send_response(200)
-            self.send_header("Content-Length", len(content) + 2)
-            self.send_header("Last-Modified", self.date_time_string())
-            self.end_headers()
-            self.wfile.write(content + "\r\n")
+            return self.http_resp(200, ctup)
 
             
     

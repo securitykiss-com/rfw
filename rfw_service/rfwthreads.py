@@ -14,21 +14,9 @@ class CommandProcessor(Thread):
         self.whitelist = whitelist
         self.setDaemon(True)
 
-    def is_ip_ignored(self, ip, whitelist, modify, rcmd):
-        """Prevent adding DROP rules and prevent deleting ACCEPT rules for whitelisted IPs.
-        Also log the such attempts as warnings.
-        """
-        action = rcmd['action']
-        if iputil.in_iplist(ip, self.whitelist):
-            if (modify == 'I' and action == 'DROP') or (modify == 'D' and action == 'ACCEPT'):
-                log.warn("Request {} related to whitelisted IP address {} ignored.".format(str(rcmd), ip))
-                return True
-        return False
- 
 
 
     def run(self):
-        #TODO iptables_list() here  and store in local var?
         rules = cmdexe.iptables_list()
         # get the set of frozen rcmd
         rcmds = cmdexe.rules_to_rcmds(rules)
@@ -49,19 +37,6 @@ class CommandProcessor(Thread):
     
             action = rcmd['action']
             chain = rcmd['chain']
-    
-            #TODO MOVE this check TO RequestHandler, to eliminate ignored IPs early and to prevent propagating them to expiry queue
-            ip1 = rcmd['ip1']
-            if self.is_ip_ignored(ip1, self.whitelist, modify, rcmd): 
-                self.cmd_queue.task_done()
-                continue
-            
-            if chain == 'forward':
-                ip2 = rcmd.get('ip2')
-                if self.is_ip_ignored(ip2, self.whitelist, modify, rcmd):
-                    self.cmd_queue.task_done()
-                    continue
-    
             
 
             # check for duplicates, apply rule
