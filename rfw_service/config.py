@@ -62,7 +62,7 @@ class Config:
 
 
 
-def set_logging(log, loglevelnum, logfile):
+def set_logging(log, loglevelnum, logfile, verbose_console=False):
     """Configure standard logging for the application. One ERROR level handler to stderr and one file handler with specified loglevelnum to logfile.
         log argument is the main (parent) application logger.
     """
@@ -72,13 +72,17 @@ def set_logging(log, loglevelnum, logfile):
         sys.exit(1)
 
     try:
-        log.setLevel(loglevelnum)
+        # Specific log levels are set on individual handlers, but we must also set the most permissive log level on the logger itself to pass the initial filter.
+        log.setLevel(logging.DEBUG)
         fh = logging.FileHandler(logfile)
         fh.setLevel(loglevelnum)
         fh.setFormatter(logging.Formatter('%(asctime)s %(levelname)-8s %(filename)s:%(lineno)d.%(funcName)s() - %(message)s'))
         log.addHandler(fh)
         ch = logging.StreamHandler()
-        ch.setLevel(logging.ERROR)
+        if verbose_console:
+            ch.setLevel(logging.DEBUG)
+        else:
+            ch.setLevel(logging.ERROR)
         ch.setFormatter(logging.Formatter('%(levelname)s %(message)s'))
         log.addHandler(ch)
         # add log file handler for libraries according to the logging convention

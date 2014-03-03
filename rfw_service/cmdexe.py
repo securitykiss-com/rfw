@@ -100,10 +100,11 @@ def iptables_list():
     return rules
     
 def rules_to_rcmds(rules):
-    """Convert list of rules in output format from iptables_list() to command format like:
+    """Convert list of rules in output format from iptables_list() to rcmd format like:
     {'action': 'DROP', 'ip1': '2.3.4.5', 'iface1': 'eth', 'chain': 'input'}
+    return set of frozenset rcmd
     """
-    rcmds = []
+    rcmds = set()
     for rule in rules:
         chain = rule['chain']
         src = rule['source']
@@ -129,7 +130,7 @@ def rules_to_rcmds(rules):
                         iface1 = 'any'
                     rcmd = {'chain': chain.lower(), 'action': target, 'ip1': src, 'iface1': iface1}
                     #TODO check for duplicates here and log warning 
-                    rcmds.append(rcmd)
+                    rcmds.add(frozenset(rcmd))
     
             if chain == 'OUTPUT':
                 if src == '0.0.0.0/0' and iface_in == '*' :
@@ -140,7 +141,7 @@ def rules_to_rcmds(rules):
                         iface1 = 'any'
                     rcmd = {'chain': chain.lower(), 'action': target, 'ip1': dst, 'iface1': iface1}
                     #TODO check for duplicates here and log warning 
-                    rcmds.append(rcmd)
+                    rcmds.add(frozenset(rcmd))
     
             if chain == 'FORWARD':
                 #TODO
@@ -150,9 +151,10 @@ def rules_to_rcmds(rules):
 
 
 
-
 def apply_rule(modify, rcmd):
+    log.debug('apply "{}" to the rule {}'.format(modify, rcmd))
     lcmd = iptables_construct(modify, rcmd)
+    log.debug('Call: {}'.format(' '.join(lcmd)))
     out = call(lcmd)
     if out:
         log.warn("Non empty output from the command: {}. The output: '{}'".format(lcmd, out))

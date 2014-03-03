@@ -1,5 +1,5 @@
 from __future__ import print_function
-import argparse, logging, re, sys, struct, socket, subprocess, signal
+import argparse, logging, re, sys, struct, socket, subprocess, signal, time
 from Queue import Queue, PriorityQueue
 from threading import Thread
 import config, rfwconfig, cmdparse, cmdexe, iputil, rfwthreads
@@ -61,17 +61,23 @@ def create_requesthandler(rfwconf, cmd_queue, expiry_queue):
             print("command2 ctup: %s" % str(ctup))
             cmd_queue.put_nowait(ctup)
 
-
-            # if command is not permanent, put the command to expiry_queue as well
-            expire = rcmd.get('expire', rfwconf.default_expire())
-            assert isinstance(expire, str) and expire.isdigit()
-            # expire=0 means permanent rule which is not added to the expiry queue
-            if expire:
-                expiry_tstamp = time.time() + int(expire)
-                etup = (expiry_tstamp, rcmd)
-                expiry_queue.put_nowait(etup)
-
             content = str(ctup)
+
+           
+            # put non-permanent command to expiry_queue as well
+            # expire applies only for 'I' insert commands            
+            if modify == 'I': 
+                expire = rcmd.get('expire', rfwconf.default_expire())
+                assert isinstance(expire, str) and expire.isdigit()
+                # expire=0 means permanent rule which is not added to the expiry queue
+                if expire:
+                    expiry_tstamp = time.time() + int(expire)
+                    etup = (expiry_tstamp, rcmd)
+                    expiry_queue.put_nowait(etup)
+            else:
+                if 'expire' in rcmd:
+                    log.warn('expire paramter ignored for non-Insert command {}'.format(rcmd))
+
     
             #request content can be read from rfile
             #inp = self.rfile.read(65000) # use Content-Length to know how many bytes to read
@@ -115,15 +121,12 @@ def create_args_parser():
     parser.add_argument('-f', default=CONFIG_FILE, metavar='CONFIGFILE', dest='configfile', help='rfw config file (default {})'.format(CONFIG_FILE))
     parser.add_argument('--loglevel', default=LOG_LEVEL, help='Log level (default {})'.format(LOG_LEVEL), choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'])
     parser.add_argument('--logfile', default=LOG_FILE, help='Log file (default {})'.format(LOG_FILE))
-    parser.add_argument('-v', help='The same as \'--loglevel DEBUG\'', action='store_true')
+    parser.add_argument('-v', help='Verbose console output. Sets DEBUG log level for stderr logger (default ERROR)', action='store_true')
     return parser
 
 def parse_args():
     parser = create_args_parser()
     args = parser.parse_args()
-    if args.v:
-        args.loglevel = 'DEBUG'
-    # TODO
     args.loglevelnum = getattr(logging, args.loglevel)
     return args
 
@@ -164,10 +167,9 @@ def stop():
 def main():
 
     args = parse_args()
-    config.set_logging(log, args.loglevelnum, args.logfile)
+    config.set_logging(log, args.loglevelnum, args.logfile, args.v)
 
-    # print(args.loglevelnum, args.logfile, args.configfile)
-
+    print('verbose console: {}'.format(args.v))
     try:
         rfwconf = rfwconfig.RfwConfig(args.configfile)
     except IOError, e:

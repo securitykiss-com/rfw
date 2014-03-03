@@ -109,7 +109,7 @@ TODO
 - add --non-daemon option at rfw startup
 - implement expire - put commands with expire to priority queue and poll in loop
 - should rfw have default expire time? Make it configurable, non-positive value => no expire
-
+- expire parameter only for INSERT/PUT commands ? Not clear what to do after expiry time of DELETE command, so let's apply this constraint (expire only for 'I' commands) 
  
 REST queries:
 ---------------------------------

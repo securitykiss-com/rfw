@@ -30,6 +30,7 @@ class CommandProcessor(Thread):
     def run(self):
         #TODO iptables_list() here  and store in local var?
         rules = cmdexe.iptables_list()
+        # get the set of frozen rcmd
         rcmds = cmdexe.rules_to_rcmds(rules)
     
         #TODO make sure if the rcmds format from iptables_list()/rules_to_rcmds() conforms to REST rcmds from cmdparse 
@@ -38,10 +39,12 @@ class CommandProcessor(Thread):
         while True:
             # read (modify, rcmd) tuple from the queue
             modify, rcmd = self.cmd_queue.get()
-            
+            # immutable rcmd dict for rcmds set operations
+            frozen_rcmd = frozenset(rcmd)
+
             print("Got from Queue:\n{}".format(rcmd))
     
-            rule_exists = rcmd in rcmds
+            rule_exists = frozen_rcmd in rcmds
     
     
             action = rcmd['action']
@@ -68,11 +71,11 @@ class CommandProcessor(Thread):
                     log.warn("Trying to insert existing rule: {}. Command ignored.".format(rcmd))
                 else:
                     cmdexe.apply_rule(modify, rcmd)
-                    log.info("Inserting the rule: {}".format(rcmd))
+                    rcmds.add(frozen_rcmd)
             elif modify == 'D':
                 if rule_exists:
                     cmdexe.apply_rule(modify, rcmd)
-                    log.info("Deleting the rule: {}".format(rcmd))
+                    rcmds.discard(frozen_rcmd)
                 else:
                     log.warn("Trying to delete not existing rule: {}. Command ignored.".format(rcmd))
             elif modify == 'L':
@@ -90,7 +93,7 @@ class CommandProcessor(Thread):
 class ExpiryManager(Thread):
     
     # polling interval in seconds that determines time resolution of expire parameter
-    POLL_INTERVAL = 5
+    POLL_INTERVAL = 1
 
 
     def __init__(self, cmd_queue, expiry_queue):
@@ -115,8 +118,10 @@ class ExpiryManager(Thread):
                 return None
 
         while True:
-            log.error('Next step of expiry manager')
             time.sleep(ExpiryManager.POLL_INTERVAL)
+
+
+            print(self.expiry_queue.queue)
 
             # Move expired items from expiry_queue to cmd_queue
             #TODO check for duplicates in priority queue?
