@@ -104,6 +104,7 @@ TODO
 - run as daemon (check fail2ban code)
 - add --non-daemon option at rfw startup
 - expire parameter only for INSERT/PUT commands ? Not clear what to do after expiry time of DELETE command, so let's apply this constraint (expire only for 'I' commands) 
+- ssl config scripts
  
 REST queries:
 ---------------------------------
@@ -185,7 +186,9 @@ curl -v --insecure --user mietek:passwd https://localhost:8443/input/eth/3.4.5.6
 
 License
 ---------------------------------
-Copyright (c) 2014 [SecurityKISS Ltd](http://www.securitykiss.com), released under the [MIT license](LICENSE.txt).   
-Yes, Mr patent attorney, you have nothing to do here. Find a decent job instead.  
+2014 Developed by [SecurityKISS Ltd](http://www.securitykiss.com) and contributors.
+Released under the [MIT License](LICENSE.txt).
+
+Yes, Mr IP attorney, you have nothing to do here. Find a decent job instead.
 Fight intellectual "property".
 
