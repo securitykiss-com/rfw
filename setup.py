@@ -26,7 +26,9 @@ setup(
     license = "MIT",
     keywords = "rfw remote firewall iptables REST web service drop accept ban allow whitelist fail2ban",
     url = "https://github.com/securitykiss-com/rfw",
-    packages=['rfw_service'],
+    packages = ['rfw_service'],
+    scripts = ['bin/rfw',],
+    data_files = [('/etc/rfw', ['config/rfw.conf'])],
     include_package_data=True,
     long_description=read('README.md', 'CHANGES.txt'),
     classifiers=[

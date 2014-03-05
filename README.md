@@ -1,7 +1,8 @@
 rfw - remote firewall
 =================================
 
-Remote firewall as a web service. rfw is the RESTful server which applies iptables rules for individual IP addresses on request from a remote client.   
+Remote firewall as a web service.  
+rfw is the RESTful server which applies iptables rules for individual IP addresses on request from a remote client.   
 rfw maintains the list of blocked IP addresses which may be updated in real time from many sources. rfw also solves the problem of concurrent modifications to iptables since the requests are serialized. 
 
 Typical use cases
@@ -78,7 +79,7 @@ Security of rfw was the primary concern from the very beginning and influenced t
 - not performance-optimal but conservative choice of time-proven crypto: 2048-bit RSA based SSL with HTTP Basic Authentication. TODO: Consider ECDSA and check HTTPS clients compatibility
 
  
-REST queries:
+REST API
 ---------------------------------
 - to modify INPUT chain:  
 PUT /input/input_iface/src_ip[?wait=true[&expire=n_sec]]  
@@ -101,6 +102,7 @@ TODO allow various formats of rules list
 - return help info for client. Response should include server ip, port, and relevant rfw configuration details
 GET /  
 
+expire parameter is valid only for PUT requests
 
 
 Examples:

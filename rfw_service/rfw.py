@@ -29,22 +29,8 @@ def create_requesthandler(rfwconf, cmd_queue, expiry_queue):
             return
  
 
-
-
-        #TODO not sure if this extra complexity is necessary. Maybe ignore any whitelisted IP related commands?
-#        def is_ip_ignored(self, ip, whitelist, modify, rcmd):
-#            """Prevent adding DROP rules and prevent deleting ACCEPT rules for whitelisted IPs.
-#            Also log the such attempts as warnings.
-#            """
-#            action = rcmd['action']
-#            if iputil.in_iplist(ip, whitelist):
-#                if (modify == 'I' and action == 'DROP') or (modify == 'D' and action == 'ACCEPT'):
-#                    log.warn("Request {} related to whitelisted IP address {} ignored.".format(str(rcmd), ip))
-#                    return True
-#            return False
-        
-        # modify should be 'D' for Delete or 'I' for Insert understood as -D and -I iptables flags
         def add_command(self, modify):
+            # modify should be 'D' for Delete or 'I' for Insert understood as -D and -I iptables flags
             assert modify == 'D' or modify == 'I'
             log.debug('self.path: {}'.format(self.path))
             
@@ -91,7 +77,6 @@ def create_requesthandler(rfwconf, cmd_queue, expiry_queue):
  
             cmd_queue.put_nowait(ctup)
             return self.http_resp(200, ctup)
-
             
     
         def do_PUT(self):

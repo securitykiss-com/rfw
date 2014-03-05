@@ -19,9 +19,9 @@ TODO
         - as above but with -b batch_file.sh option instead of standard input - asynchronous
         - if you want the 2 above make synchronous i.e. to wait for the rfw to finish processing iptables commands, simply call rfwc again with --wait flag. There should be a special call to rfw that does not return response until the queue is empty.
 - The default use case should be DROP individual IP on INPUT chain. Make the action (DROP/ACCEPT) configurable. It may be useful for FORWARD chain.
-- documentation
-- run as daemon (check fail2ban code)
-- add --non-daemon option at rfw startup
+- expand documentation, more use cases
+- run as daemon (check fail2ban code), add --non-daemon option at rfw startup
 - expire parameter only for INSERT/PUT commands ? Not clear what to do after expiry time of DELETE command, so let's apply this constraint (expire only for 'I' commands) 
-- ssl config scripts
+- ssl config scripts: ca, server, client, public/private, file permissions of the private key
 - convert README.md to README.rst using pandoc
+- 
