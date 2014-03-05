@@ -172,15 +172,10 @@ Examples:
 | iface without number like ppp means ppp+ in iptables parlance
 | any in place of interface means any interface
 
-PUT means for iptables: - for INPUT chain: insert the rule matching
-packets with specified source IP and input interface and apply DROP
-target - for OUTPUT chain: insert the rule matching packets with
-specified destination IP and output interface and apply DROP target
+PUT means for iptables: - for INPUT chain: insert the rule matching packets with specified source IP and input interface and apply DROP target - for OUTPUT chain: insert the rule matching packets with specified destination IP and output interface and apply DROP target
 
 | DELETE means: DELETE the rule
-| PUT checks for duplicates first so subsequent updates do not add new
-rules, but it is not purely idempotent since it may update the expiry
-timeout
+| PUT checks for duplicates first so subsequent updates do not add new rules, but it is not purely idempotent since it may update the expiry timeout
 
 Design choices
 --------------
@@ -206,6 +201,5 @@ License
 Copyrite (c) 2014 `SecurityKISS Ltd <http://www.securitykiss.com>`__,
 released under the `MIT License <LICENSE.txt>`__
 
-| Yes, Mr patent attorney, you have nothing to do here. Find a decent
-job instead.
+| Yes, Mr patent attorney, you have nothing to do here. Find a decent job instead.
 | Fight intellectual "property".
