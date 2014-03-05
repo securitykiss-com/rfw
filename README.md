@@ -77,34 +77,6 @@ Security of rfw was the primary concern from the very beginning and influenced t
 - limited functionality - no generic rules
 - not performance-optimal but conservative choice of time-proven crypto: 2048-bit RSA based SSL with HTTP Basic Authentication. TODO: Consider ECDSA and check HTTPS clients compatibility
 
-
-
-TODO
----------------------------------
-- Ruleset order: blocked ips DROP, ACCEPT ignored IPs [on rfw port], all IPs on rfw port DROP, the rest.
-- use PUT and DELETE - should be idempotent. Give the option on non-restful requests with GET and additional ?verb=PUT/DELETE param in query
-- Clarify responsibilities of rfw and rfwc
-    - rfw need to store credentials in config file so it shouldn't be mixed with rfwc
-    - rfw need to take an optional argument -f config_file
-    - rfwc should be the lightweight http client submitting jobs to rfw
-    - rfwc may take arguments in 2 forms:
-        - single line rule to mimic iptables interface
-        - multiline bash scripts with iptables commands
-    - rfw/rfwc should guarantee executing multiline scripts in order while being uninterrupted by other rfw requests
-    - both rfw and rfwc should accept -v/-h options
-    - show examples of using rfwc as iptables replacement:
-        - as rfwc <iptables args> - should be synchronous to be able to report errors
-        - as symbolic link for global iptables substitution - synchronous
-        - as rfwc without command line options but reading scripts from standard input - asynchronous
-        - as above but with -b batch_file.sh option instead of standard input - asynchronous
-        - if you want the 2 above make synchronous i.e. to wait for the rfw to finish processing iptables commands, simply call rfwc again with --wait flag. There should be a special call to rfw that does not return response until the queue is empty.
-- The default use case should be DROP individual IP on INPUT chain. Make the action (DROP/ACCEPT) configurable. It may be useful for FORWARD chain.
-- python packaging and release scripts
-- documentation
-- run as daemon (check fail2ban code)
-- add --non-daemon option at rfw startup
-- expire parameter only for INSERT/PUT commands ? Not clear what to do after expiry time of DELETE command, so let's apply this constraint (expire only for 'I' commands) 
-- ssl config scripts
  
 REST queries:
 ---------------------------------
@@ -134,12 +106,11 @@ GET /
 Examples:
 ---------------------------------
 
-PUT /input/eth0/12.34.56.78?expire=3600                ===   iptables -I INPUT -i eth0 -s 12.34.56.78 -j DROP with expiry time 3600 seconds
-
-DELETE /input/eth0/12.34.56.78                          ===   iptables -D INPUT -i eth0 -s 12.34.56.78 -j DROP
-
-PUT /input/any/12.34.56.78                              ===   iptables -I INPUT -s 12.34.56.78 -j DROP
-
+rfw REST API | iptables command
+-------------|-----------------
+PUT /input/eth0/12.34.56.78?expire=3600 | iptables -I INPUT -i eth0 -s 12.34.56.78 -j DROP with expiry time 3600 seconds
+DELETE /input/eth0/12.34.56.78 | iptables -D INPUT -i eth0 -s 12.34.56.78 -j DROP
+PUT /input/any/12.34.56.78 | iptables -I INPUT -s 12.34.56.78 -j DROP
 DELETE /input/any/12.34.56.78                           ===   iptables -D INPUT -s 12.34.56.78 -j DROP
 
 PUT /output/ppp/12.34.56.67                             ===   iptables -I OUTPUT -i ppp+ -d 12.34.56.78 -j DROP
@@ -186,8 +157,7 @@ curl -v --insecure --user mietek:passwd https://localhost:8443/input/eth/3.4.5.6
 
 License
 ---------------------------------
-Copyrite (c) 2014 [SecurityKISS Ltd](http://www.securitykiss.com)  
-Released under the [MIT License](LICENSE.txt)
+Copyrite (c) 2014 [SecurityKISS Ltd](http://www.securitykiss.com), released under the [MIT License](LICENSE.txt)
  
 Yes, Mr patent attorney, you have nothing to do here. Find a decent job instead.  
 Fight intellectual "property".

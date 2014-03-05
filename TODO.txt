@@ -1,0 +1,26 @@
+
+TODO
+---------------------------------
+- Ruleset order: blocked ips DROP, ACCEPT ignored IPs [on rfw port], all IPs on rfw port DROP, the rest.
+- use PUT and DELETE - should be idempotent. Give the option on non-restful requests with GET and additional ?verb=PUT/DELETE param in query
+- Clarify responsibilities of rfw and rfwc
+    - rfw need to store credentials in config file so it shouldn't be mixed with rfwc
+    - rfw need to take an optional argument -f config_file
+    - rfwc should be the lightweight http client submitting jobs to rfw
+    - rfwc may take arguments in 2 forms:
+        - single line rule to mimic iptables interface
+        - multiline bash scripts with iptables commands
+    - rfw/rfwc should guarantee executing multiline scripts in order while being uninterrupted by other rfw requests
+    - both rfw and rfwc should accept -v/-h options
+    - show examples of using rfwc as iptables replacement:
+        - as rfwc <iptables args> - should be synchronous to be able to report errors
+        - as symbolic link for global iptables substitution - synchronous
+        - as rfwc without command line options but reading scripts from standard input - asynchronous
+        - as above but with -b batch_file.sh option instead of standard input - asynchronous
+        - if you want the 2 above make synchronous i.e. to wait for the rfw to finish processing iptables commands, simply call rfwc again with --wait flag. There should be a special call to rfw that does not return response until the queue is empty.
+- The default use case should be DROP individual IP on INPUT chain. Make the action (DROP/ACCEPT) configurable. It may be useful for FORWARD chain.
+- documentation
+- run as daemon (check fail2ban code)
+- add --non-daemon option at rfw startup
+- expire parameter only for INSERT/PUT commands ? Not clear what to do after expiry time of DELETE command, so let's apply this constraint (expire only for 'I' commands) 
+- ssl config scripts
