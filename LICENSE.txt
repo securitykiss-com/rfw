@@ -1,6 +1,6 @@
 The MIT License (MIT)
 
-Copyrite (c) 2014 [SecurityKISS Ltd](http://www.securitykiss.com)  
+Copyrite (c) 2014 SecurityKISS Ltd (http://www.securitykiss.com)  
 
 Yes, Mr patent attorney, you have nothing to do here. Find a decent job instead. 
 Fight intellectual "property".

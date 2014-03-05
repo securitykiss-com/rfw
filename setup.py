@@ -1,9 +1,21 @@
-import os
+import os, io
 from setuptools import setup
 
 # Utility function to read the README file used for long description.
-def read(fname):
-    return open(os.path.join(os.path.dirname(__file__), fname)).read()
+#def read(fname):
+#    return open(os.path.join(os.path.dirname(__file__), fname)).read()
+
+def read(*filenames, **kwargs):
+    encoding = kwargs.get('encoding', 'utf-8')
+    sep = kwargs.get('sep', '\n')
+    buf = []
+    for filename in filenames:
+        fpath = os.path.join(os.path.dirname(__file__), filename)
+        with io.open(fpath, encoding=encoding) as f:
+            buf.append(f.read())
+    return sep.join(buf)
+
+
 
 setup(
     name = "rfw",
@@ -15,7 +27,8 @@ setup(
     keywords = "rfw remote firewall iptables REST web service drop accept ban allow whitelist fail2ban",
     url = "https://github.com/securitykiss-com/rfw",
     packages=['rfw_service'],
-    long_description=read('README.md'),
+    include_package_data=True,
+    long_description=read('README.md', 'CHANGES.txt'),
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Environment :: Console",

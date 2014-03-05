@@ -116,7 +116,7 @@ PUT /output/ppp/12.34.56.67 | iptables -I OUTPUT -i ppp+ -d 12.34.56.78 -j DROP
 PUT /forward/ppp/11.22.33.44/eth0/55.66.77.88 | iptables -I FORWARD -i ppp+ -s 11.22.33.44 -o eth0 -d 55.66.77.88 -j DROP
 PUT /forward/any/0.0.0.0/any/55.66.77.88 | iptables -I FORWARD -d 55.66.77.88 -j DROP
 PUT /forward/tun/11.22.33.44 | iptables -I FORWARD -i tun+ -s 11.22.33.44 -j DROP
-PUT /input/eth0/12.34.56.78?wait=true | iptables -I INPUT -i eth0 -s 12.34.56.78 -j DROP  <*and wait for finishing processing this iptables command (previous request in the queue must also be processed)*>
+PUT /input/eth0/12.34.56.78?wait=true | iptables -I INPUT -i eth0 -s 12.34.56.78 -j DROP  <*and wait for finishing processing this iptables command -- previous request in the queue must also be processed*>
 
  
 0.0.0.0 can only be used in FORWARD chain to signal any IP   

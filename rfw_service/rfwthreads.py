@@ -8,11 +8,25 @@ log = logging.getLogger('rfw.rfwthreads')
 
 class CommandProcessor(Thread):
 
-    def __init__(self, cmd_queue, whitelist):
+    def __init__(self, cmd_queue, whitelist, expiry_queue, default_expire):
         Thread.__init__(self)
         self.cmd_queue = cmd_queue
         self.whitelist = whitelist
+        self.expiry_queue = expiry_queue
+        self.default_expire = default_expire
         self.setDaemon(True)
+
+
+    def schedule_expiry(self, rcmd):
+        # put time-bounded command to the expiry_queue
+        expire = rcmd.get('expire', self.default_expire)
+        assert isinstance(expire, str) and expire.isdigit()
+        # expire=0 means permanent rule which is not added to the expiry queue
+        if expire:
+            expiry_tstamp = time.time() + int(expire)
+            extup = (expiry_tstamp, rcmd)
+            self.expiry_queue.put_nowait(extup)
+            log.debug('Expiry queue after put: {}'.format(self.expiry_queue.queue))
 
     def run(self):
         rules = cmdexe.iptables_list()
@@ -23,7 +37,6 @@ class CommandProcessor(Thread):
         #TODO add consistency checks
     
         while True:
-            # read (modify, rcmd) tuple from the queue
             modify, rcmd = self.cmd_queue.get()
             try:
                 # immutable rcmd dict for rcmds set operations
@@ -37,6 +50,8 @@ class CommandProcessor(Thread):
                         log.warn("Trying to insert existing rule: {}. Command ignored.".format(rcmd))
                     else:
                         cmdexe.apply_rule(modify, rcmd)
+                        # schedule expiry timeout if present only for Insert rules and only if rule didn't exist before (so it was added now)
+                        self.schedule_expiry(rcmd)
                         rcmds.add(frozen_rcmd)
                 elif modify == 'D':
                     if rule_exists:
@@ -77,7 +92,6 @@ class ExpiryManager(Thread):
 
         while True:
             time.sleep(ExpiryManager.POLL_INTERVAL)
-            print(self.expiry_queue.queue)
 
             # Move expired items from expiry_queue to cmd_queue
             item = peek(self.expiry_queue)
@@ -89,6 +103,7 @@ class ExpiryManager(Thread):
                 continue
             # get item with lowest priority score. It may be different (but certainly lower) from the one returned by peek() since peek() is not thread safe
             expiry_tstamp, rcmd = self.expiry_queue.get()
+            log.debug('Expiry queue after get: {}'.format(self.expiry_queue.queue))
             # expire parameter is valid only for 'I' (insert) commands, so expiring the rule is as simple as deleting it
             tup = ('D', rcmd)
             self.cmd_queue.put_nowait(tup)

@@ -46,7 +46,7 @@ def create_requesthandler(rfwconf, cmd_queue, expiry_queue):
         # modify should be 'D' for Delete or 'I' for Insert understood as -D and -I iptables flags
         def add_command(self, modify):
             assert modify == 'D' or modify == 'I'
-            print("self.path=" + self.path)
+            log.debug('self.path: {}'.format(self.path))
             
             # parse_command does not raise errors. Errors returned in response
             rcmd = cmdparse.parse_command(self.path)
@@ -89,25 +89,7 @@ def create_requesthandler(rfwconf, cmd_queue, expiry_queue):
                     # It's more secure to return the same HTTP OK response even if the command is not executed. Don't give attacker extra info.
                     return self.http_resp(200, ctup)
  
-
             cmd_queue.put_nowait(ctup)
-
-           
-            # put time-bounded command to the expiry_queue
-            # expire applies only for 'I' insert commands
-            if modify == 'I': 
-                expire = rcmd.get('expire', rfwconf.default_expire())
-                assert isinstance(expire, str) and expire.isdigit()
-                # expire=0 means permanent rule which is not added to the expiry queue
-                if expire:
-                    expiry_tstamp = time.time() + int(expire)
-                    extup = (expiry_tstamp, rcmd)
-                    expiry_queue.put_nowait(extup)
-            else:
-                if 'expire' in rcmd:
-                    log.warn('expire paramter ignored for non-Insert command {}'.format(ctup))
-
-    
             return self.http_resp(200, ctup)
 
             
@@ -190,7 +172,9 @@ def main():
     args = parse_args()
     config.set_logging(log, args.loglevelnum, args.logfile, args.v)
 
-    print('verbose console: {}'.format(args.v))
+    if args.v:
+        log.info('Console logging in verbose mode')
+
     try:
         rfwconf = rfwconfig.RfwConfig(args.configfile)
     except IOError, e:
@@ -216,16 +200,18 @@ def main():
     rules = cmdexe.iptables_list()
     rcmds = cmdexe.rules_to_rcmds(rules)
 
-    print("\nrules\n===============\n")
-    print("\n".join(map(str, rules)))
-    print("\nrcmds\n===============\n")
-    print("\n".join(map(str, rcmds)))
+    # TODO make logging more efficient by deferring arguments evaluation
+    log.debug("===== rules =====\n{}".format("\n".join(map(str, rules))))
+    log.debug("===== rcmds =====\n{}".format("\n".join(map(str, rcmds))))
 
 
     expiry_queue = PriorityQueue()
     cmd_queue = Queue()
 
-    rfwthreads.CommandProcessor(cmd_queue, rfwconf.whitelist()).start()
+    rfwthreads.CommandProcessor(cmd_queue, 
+                                rfwconf.whitelist(),
+                                expiry_queue,
+                                rfwconf.default_expire()).start()
 
     rfwthreads.ExpiryManager(cmd_queue, expiry_queue).start()
 
@@ -241,7 +227,7 @@ def main():
                     rfwconf.outward_server_certfile(), 
                     rfwconf.outward_server_keyfile())
         sa = httpd.socket.getsockname()
-        print("Serving HTTPS on", sa[0], "port", sa[1], "...")
+        log.info("Serving HTTPS on {} port {}".format(sa[0], sa[1]))
         httpd.serve_forever()
 
     

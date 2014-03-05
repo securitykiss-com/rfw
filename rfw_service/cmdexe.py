@@ -80,7 +80,6 @@ def iptables_list():
     header = None
     for line in out.split('\n'):
         line = line.strip()
-        #print("OUT: {}".format(line))
         if not line:
             chain = None  #on blank line reset current chain
             continue
@@ -164,11 +163,10 @@ def apply_rule(modify, rcmd):
 def call(lcmd):
     try:
         out = subprocess.check_output(lcmd, stderr=subprocess.STDOUT)
-        # print "call output: {}".format(out)
+        #if out: log.debug("{} call output: {}".format(lcmd, out))
         return out
     except subprocess.CalledProcessError, e:
-        #TODO convert to log.error
-        print("Error code {} returned when called '{}'. Command output: '{}'".format(e.returncode, e.cmd, e.output))
+        log.error("Error code {} returned when called '{}'. Command output: '{}'".format(e.returncode, e.cmd, e.output))
         raise e
 
 

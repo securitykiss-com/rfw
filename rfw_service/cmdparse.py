@@ -113,8 +113,6 @@ def parse_command(url):
     # split input to path and query
     parsed = urlparse.urlparse(url)
     path, query = parsed.path, parsed.query
-    #print("{:<30}{}".format("path part:", path))
-    #print("{:<30}{}".format("query part:", query))
 
     ret = parse_command_path(path)
     ret.update(parse_command_query(query))
