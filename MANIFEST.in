@@ -1,0 +1,6 @@
+include *.txt
+include *.md
+include *.rst
+recursive-include docs *.txt
+recursive-exclude *~
+exclude MANIFEST.in
