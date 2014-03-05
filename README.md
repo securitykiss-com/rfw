@@ -1,7 +1,7 @@
 rfw - remote firewall
 =================================
 
-Firewall with remote control. rfw is the RESTful service which applies iptables rules for individual IP addresses on request from a remote client.   
+Remote firewall as a web service. rfw is the RESTful server which applies iptables rules for individual IP addresses on request from a remote client.   
 rfw maintains the list of blocked IP addresses which may be updated in real time from many sources. rfw also solves the problem of concurrent modifications to iptables since the requests are serialized. 
 
 Typical use cases
@@ -186,9 +186,9 @@ curl -v --insecure --user mietek:passwd https://localhost:8443/input/eth/3.4.5.6
 
 License
 ---------------------------------
-2014 Developed by [SecurityKISS Ltd](http://www.securitykiss.com) and contributors.
-Released under the [MIT License](LICENSE.txt).
-
-Yes, Mr IP attorney, you have nothing to do here. Find a decent job instead.
+Copyrite (c) 2014 [SecurityKISS Ltd](http://www.securitykiss.com)  
+Released under the [MIT License](LICENSE.txt)
+ 
+Yes, Mr patent attorney, you have nothing to do here. Find a decent job instead.  
 Fight intellectual "property".
 

@@ -1,7 +1,8 @@
-2014 Developed by SecurityKISS Ltd [http://www.securitykiss.com] and contributors.
-Released under the MIT License.
+The MIT License (MIT)
 
-Yes, Mr IP attorney, you have nothing to do here. Find a decent job instead. 
+Copyrite (c) 2014 [SecurityKISS Ltd](http://www.securitykiss.com)  
+
+Yes, Mr patent attorney, you have nothing to do here. Find a decent job instead. 
 Fight intellectual "property".
 
 Permission is hereby granted, free of charge, to any person obtaining
