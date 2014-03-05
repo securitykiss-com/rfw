@@ -24,3 +24,4 @@ TODO
 - add --non-daemon option at rfw startup
 - expire parameter only for INSERT/PUT commands ? Not clear what to do after expiry time of DELETE command, so let's apply this constraint (expire only for 'I' commands) 
 - ssl config scripts
+- convert README.md to README.rst using pandoc
