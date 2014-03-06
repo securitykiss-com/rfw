@@ -40,10 +40,13 @@ class CommandProcessor(Thread):
             modify, rcmd = self.cmd_queue.get()
             try:
                 # immutable rcmd dict for rcmds set operations
-                frozen_rcmd = frozenset(rcmd)
+                frozen_rcmd = frozenset(rcmd.items())
                 log.debug("Got new item from the command queue: '{}' {}".format(modify, rcmd))
                 rule_exists = frozen_rcmd in rcmds
-    
+                log.debug('frozen_rcmd: {}'.format(frozen_rcmd))
+                log.debug('rcmds: {}'.format(rcmds))
+                log.debug('rule_exists: {}'.format(rule_exists))                
+ 
                 # check for duplicates, apply rule
                 if modify == 'I':
                     if rule_exists:

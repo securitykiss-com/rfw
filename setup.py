@@ -49,5 +49,9 @@ setup(
 
 # TODO openssl why genrsa generates only private key?
 
+# TODO Tutorial on sk website on how to import root CA certificate in Firefox/Chrome
+
+# TODO article on OCSP privacy concern - even if you secure DNS, your browsing habits are revealed to ISP
+
 
 
