@@ -22,7 +22,7 @@ Features
 -  remove duplicate entries
 -  bulk updates in order to sync client blocklist with rfw status - ??
    It doesn't seem to be a good idea. Keep it simple, move sync responsibilty to the client. Let the client GET the rules list and PUT the missing ones.
--  both remote and local interface
+-  both remote and local interface. There are 2 REST interfaces: SSL secured that can listen on any available network interface or IP and plain HTTP that can listen only on localhost
 -  remote updates via RESTful API
 -  secured with HTTPS
 -  authenticated with basic authentication over SSL and by client source IP

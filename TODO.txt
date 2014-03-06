@@ -24,4 +24,6 @@ TODO
 - expire parameter only for INSERT/PUT commands ? Not clear what to do after expiry time of DELETE command, so let's apply this constraint (expire only for 'I' commands) 
 - ssl config scripts: ca, server, client, public/private, file permissions of the private key
 - convert README.md to README.rst using pandoc
+- tidy up REST verb functions on sslserver
+- add HTTP server for localhost
 - 
