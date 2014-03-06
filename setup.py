@@ -30,7 +30,7 @@ setup(
     scripts = ['bin/rfw',],
     data_files = [('/etc/rfw', ['config/rfw.conf'])],
     include_package_data=True,
-    long_description=read('README.md', 'CHANGES.txt'),
+    long_description=read('README.rst', 'CHANGES.txt'),
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Environment :: Console",
@@ -42,3 +42,12 @@ setup(
         "License :: OSI Approved :: MIT License",
     ],
 )
+
+# TODO create symlink in bin folder
+
+# TODO add info 'Now run deployment scripts to generate certificates and keys'
+
+# TODO openssl why genrsa generates only private key?
+
+
+

@@ -1,6 +1,7 @@
 include *.txt
 include *.md
 include *.rst
+include bin/*
+include config/*
 recursive-include docs *.txt
 recursive-exclude rfw_service *~
-exclude MANIFEST.in
