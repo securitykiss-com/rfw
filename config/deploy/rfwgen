@@ -3,7 +3,7 @@
 import subprocess, os, re, sys, time
 
 def usage():
-    usage = "rfwgen - key and cert generator for rfw\n\nusage: rfwgen <server_ip>"
+    usage = "rfwgen - key and certificate generator for rfw\n\nusage: rfwgen <server_ip>"
     return usage
 
 
@@ -31,6 +31,14 @@ def call(lcmd):
         print("Error code {} returned when called '{}'. Command output: '{}'".format(e.returncode, e.cmd, e.output))
         raise e
 
+
+def step(title):
+    print('\n{}\n========================================='.format(title))
+
+def abort():
+    print('Aborted')
+    sys.exit(1)
+
 if __name__ == '__main__':
 
     if len(sys.argv) != 2:
@@ -41,8 +49,7 @@ if __name__ == '__main__':
         print usage()
         sys.exit(-1)
 
-    # set umask
-
+    #TODO set umask and/or individual file permissions
 
     server_dir = 'server_{}'.format(server_ip)
     ca_key = 'offline/ca.key'
@@ -52,9 +59,16 @@ if __name__ == '__main__':
     server_csr = os.path.join(server_dir, 'server_csr')
 
     # check openssl if works
+    try:
+        call(['openssl', 'version'])
+    except OSError, e:
+        print('Could not run openssl. Check if it is correctly installed.')
+        abort()
     
     # generate a 4096-bit long RSA key and the root CA if they don't exist
     if not os.path.isfile(ca_key) or not os.path.isfile(ca_crt):
+        step('Create rfw root CA')
+        print('Generating root CA in {} and {}'.format(ca_key, ca_crt))
         try:
             os.mkdir('offline')
             os.mkdir('client')
@@ -62,24 +76,38 @@ if __name__ == '__main__':
             # ignore the 'dir already exists' error 
             pass
         root_subj = "/C=IE/ST=Universe/L=Internet/O=rfw root CA {}".format(time.strftime("%d-%m-%Y %H:%M:%S"))
-        print('Generating rfw root CA in {} and {}'.format(ca_key, ca_crt))
         out = call(['openssl', 'req', '-new', '-newkey', 'rsa:4096', '-days', '7305', '-nodes', '-x509', '-subj', root_subj, '-keyout', ca_key, '-out', ca_crt])
         print(out)
         if not os.path.isfile(ca_key):
             print('Could not find ca_key. Something went wrong when generating {}'.format(ca_key))
-            sys.exit(1)
+            abort()
         if not os.path.isfile(ca_crt):
             print('Could not find ca_crt. Something went wrong when generating {}'.format(ca_crt))
-            sys.exit(1)
+            abort()
     else:
-        print('Using existing rfw root CA in {} and {}'.format(ca_key, ca_crt))
+        step('Locate rfw root CA')
+        print('Using existing root CA in {} and {}'.format(ca_key, ca_crt))
     
-    
+
+    step('Check existing server files for {}'.format(server_ip))
     if os.path.isfile(server_key) or os.path.isfile(server_crt):
         overwrite = raw_input('Server key or certificate already exists in folder {}\nDo you want to overwrite (y/n)? [n]: '.format(server_dir))
-        if overwrite != 'y':
-            print('Aborted')
-            sys.exit(1)
+        if overwrite == 'y':
+            try:
+                if os.path.isfile(server_key):
+                    os.remove(server_key)
+                if os.path.isfile(server_crt):
+                    os.remove(server_crt)
+                if os.path.isfile(server_csr):
+                    os.remove(server_csr)
+            except OSError, e:
+                print(e.message)
+                print('Could not remove existing files in {}.'.format(server_dir))
+                abort()
+        else:
+            abort()
+    else:
+        print('Done')
         
     try:
         os.mkdir(server_dir)
@@ -87,18 +115,40 @@ if __name__ == '__main__':
         # ignore the 'dir already exists' error 
         pass
 
-    # create server key
+    step('Create server private key')
     out = call(['openssl', 'genrsa', '-out', server_key, '2048'])
     print(out)
+    if not os.path.isfile(server_key):
+        print('Could not find server_key. Something went wrong when generating {}'.format(server_key))
+        abort()
+    else:
+        print('Done')
 
-    # create certificate request for server.crt
+    step('Create certificate request')
     crt_subj = "/C=IE/ST=Universe/L=Internet/O=Server {0}/CN={0}".format(server_ip)
     out = call(['openssl', 'req', '-new', '-subj', crt_subj, '-key', server_key, '-out', server_csr])
     print(out)
+    if not os.path.isfile(server_csr):
+        print('Could not find server_csr. Something went wrong when generating {}'.format(server_csr))
+        abort()
+    else:
+        print('Done')
 
-    # create server certificate signed by the root CA
+    step('Create certificate signed by root CA')
     out = call(['openssl', 'x509', '-req', '-days', '7305', '-in', server_csr, '-CA', ca_crt, '-CAkey', ca_key, '-set_serial', '01', '-out', server_crt])
     print(out)
+    if not os.path.isfile(server_crt):
+        print('Could not find server_crt. Something went wrong when generating {}'.format(server_crt))
+        abort()
+    else:
+        print('Done')
 
     os.remove(server_csr)
+
+    print('\nrfwgen completed')    
+    
+
+
+
+
 
