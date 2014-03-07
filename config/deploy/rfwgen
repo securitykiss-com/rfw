@@ -1,10 +1,9 @@
-# usage:
-# rfwgen <server_ip>
+#!/usr/bin/env python
 
 import subprocess, os, re, sys, time
 
 def usage():
-    usage = "rfwgen - key and cert generator for rfw\n\nusage: rfwgen server_ip"
+    usage = "rfwgen - key and cert generator for rfw\n\nusage: rfwgen <server_ip>"
     return usage
 
 
@@ -22,9 +21,6 @@ def validate_ip(ip):
              ip_canon = "{}.{}.{}.{}".format(a1, a2, a3, a4)
              return ip_canon
      return False
-
-
-
 
 
 def call(lcmd):
@@ -67,11 +63,24 @@ if __name__ == '__main__':
             pass
         root_subj = "/C=IE/ST=Universe/L=Internet/O=rfw root CA {}".format(time.strftime("%d-%m-%Y %H:%M:%S"))
         print('Generating rfw root CA in {} and {}'.format(ca_key, ca_crt))
-        print(call(['openssl', 'req', '-new', '-newkey', 'rsa:4096', '-days', '7305', '-nodes', '-x509', '-subj', root_subj, '-keyout', ca_key, '-out', ca_crt]))
+        out = call(['openssl', 'req', '-new', '-newkey', 'rsa:4096', '-days', '7305', '-nodes', '-x509', '-subj', root_subj, '-keyout', ca_key, '-out', ca_crt])
+        print(out)
+        if not os.path.isfile(ca_key):
+            print('Could not find ca_key. Something went wrong when generating {}'.format(ca_key))
+            sys.exit(1)
+        if not os.path.isfile(ca_crt):
+            print('Could not find ca_crt. Something went wrong when generating {}'.format(ca_crt))
+            sys.exit(1)
     else:
         print('Using existing rfw root CA in {} and {}'.format(ca_key, ca_crt))
     
-
+    
+    if os.path.isfile(server_key) or os.path.isfile(server_crt):
+        overwrite = raw_input('Server key or certificate already exists in folder {}\nDo you want to overwrite (y/n)? [n]: '.format(server_dir))
+        if overwrite != 'y':
+            print('Aborted')
+            sys.exit(1)
+        
     try:
         os.mkdir(server_dir)
     except OSError, e:
@@ -79,29 +88,17 @@ if __name__ == '__main__':
         pass
 
     # create server key
-    print(call(['openssl', 'genrsa', '-out', server_key, '2048']))
+    out = call(['openssl', 'genrsa', '-out', server_key, '2048'])
+    print(out)
 
     # create certificate request for server.crt
     crt_subj = "/C=IE/ST=Universe/L=Internet/O=Server {0}/CN={0}".format(server_ip)
-    print(call(['openssl', 'req', '-new', '-subj', crt_subj, '-key', server_key, '-out', server_csr]))
-    
-    
+    out = call(['openssl', 'req', '-new', '-subj', crt_subj, '-key', server_key, '-out', server_csr])
+    print(out)
+
     # create server certificate signed by the root CA
-    print(call(['openssl', 'x509', '-req', '-days', '7305', '-in', server_csr, '-CA', ca_crt, '-CAkey', ca_key, '-set_serial', '01', '-out', server_crt]))
+    out = call(['openssl', 'x509', '-req', '-days', '7305', '-in', server_csr, '-CA', ca_crt, '-CAkey', ca_key, '-set_serial', '01', '-out', server_crt])
+    print(out)
 
-# create self-signed root CA certificate ca.crt; you'll need to provide an identity for your root CA
-#openssl req -new -x509 -days 1826 -key ca.key -out ca.crt
-# give it informative common name CN
-
-# create our intermediate CA that will be used for the actual signing. First, generate the key
-#openssl genrsa -out ia.key 4096
-
-# then, request a certificate for this subordinate CA
-#openssl req -new -key ia.key -out ia.csr
-# give it IP address CN
-
-#process the request for the subordinate CA certificate and get it signed by the root CA.
-#openssl x509 -req -days 730 -in ia.csr -CA ca.crt -CAkey ca.key -set_serial 01 -out ia.crt
-
-
+    os.remove(server_csr)
 
