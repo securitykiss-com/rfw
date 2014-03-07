@@ -13,3 +13,6 @@
 # If outward.server is not enabled this option is ignored.
 
 
+
+# Then the client needs to import only a single CA even when every server has a different cert what simplifies deployment.
+
