@@ -23,17 +23,17 @@ You need to run rfwgen for each rfw server while providing their IP addresses:
 
 After running the above commands the folder tree should look like this:
 
-.
-├── client
-│   └── ca.crt
-├── offline
-│   └── ca.key
-├── server_11.11.11.11
-│   ├── server.crt
-│   └── server.key
-└── server_22.22.22.22
-    ├── server.crt
-    └── server.key
+    .
+    ├── client
+    │   └── ca.crt
+    ├── offline
+    │   └── ca.key
+    ├── server_11.11.11.11
+    │   ├── server.crt
+    │   └── server.key
+    └── server_22.22.22.22
+        ├── server.crt
+        └── server.key
 
 client/ca.crt and offline/ca.key are generated only when rfwgen runs first time. Folder names indicate where the files should be deployed:
 
