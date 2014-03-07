@@ -7,9 +7,8 @@ rfwgen is a tool that generates necessary PKI artifacts:
 
 Deployment example
 ------------------
-Typical deployment scenario is a single client (e.g. a central abuse detection and IP reputation system) and multiple rfw servers listening to firewall modification commands.
+Typical deployment scenario is a single client (e.g. a central abuse detection and IP reputation system) and multiple rfw servers listening to firewall modification commands.::
 
-::
                           rfw server 11.11.11.11
     client
                           rfw server 22.22.22.22                        
@@ -17,14 +16,13 @@ Typical deployment scenario is a single client (e.g. a central abuse detection a
 
 Using rfwgen 
 ------------
-You need to run rfwgen for each rfw server while providing their IP addresses:
+You need to run rfwgen for each rfw server while providing their IP addresses.::
 
 ./rfwgen 11.11.11.11
 ./rfwgen 22.22.22.22
 
-After running the above commands the folder tree should look like this:
+After running the above commands the folder tree should look like this: ::
 
-::
     .
     ├── client
     │   └── ca.crt
