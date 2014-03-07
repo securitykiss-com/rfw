@@ -1,17 +1,24 @@
+rfwgen
+======
+
+rfwgen is a tool that generates necessary PKI artifacts for rfw:
+- root CA (Certificate Authority)
+- server certificate and private key for each server
+
 rfw works with security certificates are based on IP address (as opposed to prevalent in the web the certificate based on domain name).
 Thus it assumes that the server has static IP and that REST URLs will address it using that IP.
-
-rfwgen is a tool that generates necessary PKI artifacts:
-- rfw root CA (Certificate Authority)
-- server certificate and private key for each server
 
 Deployment example
 ------------------
 Typical deployment scenario is a single client (e.g. a central abuse detection and IP reputation system) and multiple rfw servers listening to firewall modification commands.::
 
-                          rfw server 11.11.11.11
+                                ======================
+                                rfw server 11.11.11.11
+    ======                      ======================
     client
-                          rfw server 22.22.22.22                        
+    ======                      ======================
+                                rfw server 22.22.22.22
+                                ======================
 
 
 Using rfwgen 
@@ -45,45 +52,56 @@ Using own Certificate Authority complicates initial setup but it makes it easier
 The client needs to import only a single CA once.
 Adding a new server boils down to generating new certificate and deploying it on the server. The client will accept it without any modification on the client side. 
 
-Import root CA in client
-------------------------
-curl 
+Import root CA in the client
+----------------------------
 
-firefox
+**curl**
 
-libraries
+Copy client/ca.crt to the client machine.
 
+The complete curl request::
 
-Keys deployment
----------------
+    curl -v --cacert <path_to_ca_crt> --user <username>:<passwd> https://<server_ip>:7393/
 
+for example::
 
-11.11.11.11
+    curl -v --cacert config/deploy/client/ca.crt --user myuser:mypasswd https://11.11.11.11:7393/input/eth0/1.2.3.4
 
-22.22.22.22
+You can also generate server certificate for localhost::
 
+    curl -v --cacert config/deploy/client/ca.crt --user myuser:mypasswd https://127.0.0.1:7393/
 
-
-
-
-
-#TODO curl with imported root CA
+Please note the numeric IP above. For consistency rfwgen accepts only IP addresses so you must use 127.0.0.1 instead of localhost.
 
 
+Deploy keys to the server
+-------------------------
+
+Let's assume you deploy to server with IP 11.11.11.11.
+
+Copy server_11.11.11.11/server.crt and server_11.11.11.11/server.key to the server for example to /etc/rfw/ssl/ folder.
+Update /etc/rfw/rfw.conf to point to these files::
+
+    outward.server.certfile = /etc/rfw/ssl/server.crt
+
+    outward.server.keyfile = /etc/rfw/ssl/server.key
 
 
-# Network interfaces defined by IP to which HTTPS server is binding.
-#
-# If set to 0.0.0.0 the rfw server binds (listens on) all interfaces.
-# Even in such case there is only one valid SSL secured url with single IP.
-# It's because rfw does not support Server Name Indication (SNI) which means
-# that rfw presents only one SSL certificate for single IP. That IP selected
-# while generating the certificate will determine the SSL secured URL.
-# While rfw can listen on all available IPs, an attempt to connect to a different IP, 
-# will generate 'ssl_error_bad_cert_domain' on client side.
-#
-# If outward.server is not enabled this option is ignored.
+FAQ
+---
 
+**Can I create a certificate for localhost to test rfw locally**
 
+Yes, but you must use numeric IP: 127.0.0.1 instead of ``localhost``::
 
+    ./rfwgen 127.0.0.1
+
+and the certificate will only be valid if numeric IP is used in the URL.
+
+**Can I create a certificate for multiple IP addresses on the same server?**
+
+No. Even though rfw can listen on multiple IPs (when it binds to all network interfaces),
+the server presents only one certificate for single IP, the same the certificate was generated for.
+In other words it does not support Server Name Indication (SNI).
+An attempt to connect to a different IP, will generate 'ssl_error_bad_cert_domain' on the client side.
 
