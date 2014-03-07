@@ -60,8 +60,7 @@ FAQ
 
 Note that when the rules come from variuos sources they may interact badly. For firewalls the order of rules matters. That's why the functionality of remote rfw is limited to blocking individual IPs inserted in front of the ruleset. Be careful when using local rfwc where you have the full power of iptables at hand.
 
-**Q: rfw limits REST client access by IP whitelisting. What if I need to
-connect from dynamic IP?**
+**Q: rfw limits REST client access by IP whitelisting. What if I need to connect from dynamic IP?**
 
 rfw is intended for hosts with static IP addresses. It includes both servers and clients. For clients it is not as strong requirement as it seems since in typical rfw deployment the client is a data center collocated machine with static IP. If you really need to use REST client from various locations or from dynamic IP, you have a couple of options:
 

@@ -54,9 +54,9 @@ if __name__ == '__main__':
     server_dir = 'server_{}'.format(server_ip)
     ca_key = 'offline/ca.key'
     ca_crt = 'client/ca.crt'
-    server_key = os.path.join(server_dir, 'server_key')
-    server_crt = os.path.join(server_dir, 'server_crt')
-    server_csr = os.path.join(server_dir, 'server_csr')
+    server_key = os.path.join(server_dir, 'server.key')
+    server_crt = os.path.join(server_dir, 'server.crt')
+    server_csr = os.path.join(server_dir, 'server.csr')
 
     # check openssl if works
     try:
