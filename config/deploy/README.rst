@@ -2,6 +2,7 @@ rfwgen
 ======
 
 rfwgen is a tool that generates necessary PKI artifacts for rfw:
+
 - root CA (Certificate Authority)
 - server certificate and private key for each server
 
@@ -10,7 +11,7 @@ Thus it assumes that the server has static IP and that REST URLs will address it
 
 Deployment example
 ------------------
-Typical deployment scenario is a single client (e.g. a central abuse detection and IP reputation system) and multiple rfw servers listening to firewall modification commands.::
+Typical deployment scenario is a single client (e.g. a central abuse detection and IP reputation system) and multiple rfw servers listening to firewall modification commands::
 
                                 ======================
                                 rfw server 11.11.11.11
@@ -23,12 +24,12 @@ Typical deployment scenario is a single client (e.g. a central abuse detection a
 
 Using rfwgen 
 ------------
-You need to run rfwgen for each rfw server while providing their IP addresses.::
+You need to run rfwgen for each rfw server while providing their IP addresses::
 
 ./rfwgen 11.11.11.11
 ./rfwgen 22.22.22.22
 
-After running the above commands the folder tree should look like this: ::
+After running the above commands the folder tree should look like this::
 
     .
     ├── client
@@ -55,7 +56,7 @@ Adding a new server boils down to generating new certificate and deploying it on
 Import root CA in the client
 ----------------------------
 
-**curl**
+**curl client**
 
 Copy client/ca.crt to the client machine.
 
@@ -72,6 +73,10 @@ You can also generate server certificate for localhost::
     curl -v --cacert config/deploy/client/ca.crt --user myuser:mypasswd https://127.0.0.1:7393/
 
 Please note the numeric IP above. For consistency rfwgen accepts only IP addresses so you must use 127.0.0.1 instead of localhost.
+
+**Firefox client**
+
+See the instruction on `SecurityKISS website <http://www.securitykiss.com/resources/tutorials/firefox_root_ca/>`_.
 
 
 Deploy keys to the server
@@ -100,8 +105,9 @@ and the certificate will only be valid if numeric IP is used in the URL.
 
 **Can I create a certificate for multiple IP addresses on the same server?**
 
-No. Even though rfw can listen on multiple IPs (when it binds to all network interfaces),
-the server presents only one certificate for single IP, the same the certificate was generated for.
-In other words it does not support Server Name Indication (SNI).
+You can create a certificate for every IP of the server but you cannot configure rfw with all of them at the same time.
+rfw accepts only a single certificate - it does not support Server Name Indication (SNI).
+Even though rfw can listen on multiple IPs (when it binds to all network interfaces),
+the server presents only one fixed certificate for single IP, the same the certificate was generated for.
 An attempt to connect to a different IP, will generate 'ssl_error_bad_cert_domain' on the client side.
 
