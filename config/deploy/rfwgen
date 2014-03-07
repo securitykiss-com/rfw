@@ -75,7 +75,7 @@ if __name__ == '__main__':
         except OSError, e:
             # ignore the 'dir already exists' error 
             pass
-        root_subj = "/C=IE/ST=Universe/L=Internet/O=rfw root CA {}".format(time.strftime("%d-%m-%Y %H:%M:%S"))
+        root_subj = "/C=IE/ST=Universe/L=Internet/O=rfw root CA {}".format(time.strftime("%Y-%m-%d %H:%M:%S"))
         out = call(['openssl', 'req', '-new', '-newkey', 'rsa:4096', '-days', '7305', '-nodes', '-x509', '-subj', root_subj, '-keyout', ca_key, '-out', ca_crt])
         print(out)
         if not os.path.isfile(ca_key):

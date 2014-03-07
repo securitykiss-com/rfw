@@ -1,4 +1,4 @@
-rfw works with security certificates generated for IP address (as opposed to more common in the web the certificate for domain name).
+rfw works with security certificates are based on IP address (as opposed to prevalent in the web the certificate based on domain name).
 Thus it assumes that the server has static IP and that REST URLs will address it using that IP.
 
 rfwgen is a tool that generates necessary PKI artifacts:
@@ -9,8 +9,9 @@ Deployment example
 ------------------
 Typical deployment scenario is a single client (e.g. a central abuse detection and IP reputation system) and multiple rfw servers listening to firewall modification commands.
 
+::
                           rfw server 11.11.11.11
-client
+    client
                           rfw server 22.22.22.22                        
 
 
@@ -23,6 +24,7 @@ You need to run rfwgen for each rfw server while providing their IP addresses:
 
 After running the above commands the folder tree should look like this:
 
+::
     .
     ├── client
     │   └── ca.crt
