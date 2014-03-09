@@ -64,7 +64,9 @@ if __name__ == '__main__':
     except OSError, e:
         print('Could not run openssl. Check if it is correctly installed.')
         abort()
-    
+   
+    # The procedure below based on http://blog.didierstevens.com/2008/12/30/howto-make-your-own-cert-with-openssl/
+     
     # generate a 4096-bit long RSA key and the root CA if they don't exist
     if not os.path.isfile(ca_key) or not os.path.isfile(ca_crt):
         step('Create rfw root CA')

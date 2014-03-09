@@ -16,12 +16,12 @@ Features
 
 -  block individual IP addresses on iptables on request from remote host
 -  serialize requests to prevent concurrency issues with iptables
--  remove duplicate entries
+-  idempotent - duplicate entries are ignored
 -  bulk updates in order to sync client blocklist with rfw status - ??
    It doesn't seem to be a good idea. Keep it simple, move sync responsibilty to the client. Let the client GET the rules list and PUT the missing ones.
 -  both remote and local interface. There are 2 REST interfaces: SSL secured that can listen on any available network interface or IP and plain HTTP that can listen only on localhost
 -  remote updates via RESTful API
--  secured with HTTPS
+-  secured with SSL
 -  authenticated with basic authentication over SSL and by client source IP
 -  keep IP whitelist - commands related to whitelisted IPs will be ignored. This is to prevent locking access to the machine.
 -  whitelist defined in config file, handle CIDR notation
@@ -146,14 +146,20 @@ Design choices
 
 Note that HTTPS is not the perfect choice protocol here since by default it authenticates the server while we need to authenticate the client.  Anyway we want to use standard protocols here so we stick to the SSL + basic authentication scheme commonly used on the web. SSL authenticates the server with certificates while shared username + password authenticates the client. Client certificates in HTTPS are possible but not all client libraries support it; also it would complicate deployment.
 
-Run rfw without installing: sudo ./rfw -f config/rfw.conf
+Testing with curl::
 
-| Testing with curl:
-| curl -v --insecure --user mietek:passwd https://localhost:8443/input/eth/3.4.5.6
+    curl -v --cacert config/deploy/client/ca.crt --user myuser:mypasswd https://11.11.11.11:7393/input/eth0/1.2.3.4
 
-| Running rfw without installing
-| You still need to be root. Unzip tarball, cd to project folder
-| `sudo bin/rfw -f config/rfw.conf --logfile=rfw.log`
+or when testing on localhost you can skip certificate verification::
+
+    curl -v --insecure --user myuser:mypasswd https://127.0.0.1:8443/input/eth0/1.2.3.4
+
+Run rfw without installing
+--------------------------
+
+You still need to be root. Unzip tarball, cd to project folder::
+
+    sudo bin/rfw -f config/rfw.conf --logfile=rfw.log
 
 
 License

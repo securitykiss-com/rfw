@@ -26,4 +26,6 @@ TODO
 - convert README.md to README.rst using pandoc
 - tidy up REST verb functions on sslserver
 - add HTTP server for localhost
-- 
+- implement GET and formatting output rules list
+- curl GET, PUT, DELETE, POST examples with various headers (like Accept: json or xml or text for GET)
+ 

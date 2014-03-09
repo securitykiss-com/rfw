@@ -56,7 +56,7 @@ Adding a new server boils down to generating new certificate and deploying it on
 Import root CA in the client
 ----------------------------
 
-Copy client/ca.crt to the client machine and then use it in the way depending on the client browser:
+Copy ``client/ca.crt`` to the client machine and then use it in the way depending on the client browser:
 
 **curl client**
 
@@ -109,9 +109,8 @@ and the certificate will only be valid if numeric IP is used in the URL.
 
 **Can I create a certificate for multiple IP addresses on the same server?**
 
-You can create a certificate for every IP of the server but you cannot configure rfw with all of them at the same time.
-rfw accepts only a single certificate - it does not support Server Name Indication (SNI).
-Even though rfw can listen on multiple IPs (when it binds to all network interfaces),
-the server presents only one fixed certificate for single IP, the same the certificate was generated for.
-An attempt to connect to a different IP, will generate 'ssl_error_bad_cert_domain' on the client side.
+|You can create a certificate for every IP of the server but you cannot configure rfw with all of them at the same time.
+|rfw accepts only a single certificate - it does not support Server Name Indication (SNI).
+|Even though rfw can listen on multiple IPs (when it binds to all network interfaces), the server presents only one fixed certificate for single IP, the same the certificate was generated for.
+|An attempt to connect to a different IP, will generate 'ssl_error_bad_cert_domain' on the client side.
 

@@ -1,5 +1,9 @@
 import os, io
-from setuptools import setup
+try:
+    from setuptools import setup
+except ImportError:
+    from distutils.core import setup
+
 
 # Utility function to read the README file used for long description.
 #def read(fname):
