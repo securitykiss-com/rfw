@@ -155,7 +155,11 @@ def stop():
 def main():
 
     args = parse_args()
-    config.set_logging(log, args.loglevelnum, args.logfile, args.v)
+    try:
+        config.set_logging(log, args.loglevelnum, args.logfile, args.v)
+    except config.ConfigError, e:
+        perr(e.message)
+        sys.exit(1)
 
     if args.v:
         log.info('Console logging in verbose mode')

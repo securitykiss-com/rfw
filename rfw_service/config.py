@@ -8,8 +8,10 @@ from ConfigParser import RawConfigParser, NoOptionError
 log = logging.getLogger('lib.{}'.format(__name__))
 log.addHandler(logging.NullHandler())
 
-def perr(msg):
-    print(msg, file=sys.stderr)
+class ConfigError(Exception):
+    def __init__(self, msg):
+        Exception.__init__(self, msg)
+
 
 class Config:
     def __init__(self, path, section="config"):
@@ -20,10 +22,12 @@ class Config:
         self.parser = RawConfigParser(allow_no_value=True)
         self.parser.read(self.path)
 
+    # throws NoOptionError
     def _get(self, opt):
         """Get option value from [config] section of config file.
         It may return None if valueless option present (option name only). It's possible because allow_no_value=True
         It may raise NoOptionError if option not present
+        It may raise NoSectionError
         """
         return self.parser.get(self.section, opt)
 
@@ -40,24 +44,17 @@ class Config:
                 log.info(log_msg)
         return False
 
+    # throws NoOptionError or ConfigError
     def _getfile(self, opt):
-        try:
-            filename = self._get(opt)
-            if filename and os.path.isfile(filename):
-                return filename
-            else:
-                self._configexit("Could not find the file {} = {}".format(opt, filename))
-        except NoOptionError, e:
-            self._configexit(str(e))
+        filename = self._get(opt)
+        if filename and os.path.isfile(filename):
+            return filename
+        else:
+            raise self.config_error("Could not find the file {} = {}".format(opt, filename))
  
-
-    def _configexit(self, msg):
-        """Log config error and exit with error code
-        """
-        perr("Configuration error in {}: {}".format(self.path, msg))
-        sys.exit(1)
-
-
+    # create ConfigError
+    def config_error(self, msg):
+        return ConfigError('Configuration error in {}: {}'.format(self.path, msg))
 
 
 
@@ -88,10 +85,10 @@ def set_logging(log, loglevelnum, logfile, verbose_console=False):
         # add log file handler for libraries according to the logging convention
         logging.getLogger('lib').addHandler(fh)    
     except IOError, e:
-        perr(e)
+        msg = str(e)
         if e.errno == 13:
-            perr('You need to be root')
-        sys.exit(1)
+            msg += '\nYou need to be root'
+        raise ConfigError(msg)
 
 
 
