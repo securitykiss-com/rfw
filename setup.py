@@ -14,7 +14,7 @@ class post_install(install):
         # call parent
         install.run(self)
         # custom post install message
-        print('\nBefore running rfw you must generate or import certificates. See /etc/rfw/deploy/README.rst\n')
+        print('\n\nBefore running rfw you must generate or import certificates. See /etc/rfw/deploy/README.rst\n\n')
 
 
 

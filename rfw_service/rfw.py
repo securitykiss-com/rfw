@@ -103,7 +103,7 @@ def create_requesthandler(rfwconf, cmd_queue, expiry_queue):
 
 def create_args_parser():
     CONFIG_FILE = '/etc/rfw/rfw.conf'
-    LOG_LEVEL = 'WARN'
+    LOG_LEVEL = 'DEBUG'
     LOG_FILE = '/var/log/rfw.log'
     parser = argparse.ArgumentParser(description='rfw - Remote Firewall')
     parser.add_argument('-f', default=CONFIG_FILE, metavar='CONFIGFILE', dest='configfile', help='rfw config file (default {})'.format(CONFIG_FILE))
@@ -159,6 +159,9 @@ def main():
 
     if args.v:
         log.info('Console logging in verbose mode')
+    
+    log.info("Logging to file: {}".format(args.logfile))
+    log.info("File log level: {}".format(args.loglevel))
 
     try:
         rfwconf = rfwconfig.RfwConfig(args.configfile)
@@ -173,7 +176,7 @@ def main():
     log.info("Starting rfw server")
     log.info("Whitelisted IP addresses that will be ignored:")
     for a in rfwconf.whitelist():
-        log.info(a)
+        log.info('    {}'.format(a))
 
 
     # Install signal handlers

@@ -37,5 +37,4 @@ TODO
 - test and document using rfw with fail2ban
 - initialize iptables with static set of rules - ?? not sure if needed
 - _configexit in Config.py convert to exception - we may need to handle errors in the app
-- fix loglevel problem - by default nothing in /var/log/rfw.log. When rfw -v, display logfile and loglevel info. Add recommendation to run rfw -v first.
 
