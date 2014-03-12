@@ -1,7 +1,6 @@
-include *.txt
-include *.md
-include *.rst
+include README.rst
 include bin/*
 include config/*
+include config/deploy/*
 recursive-include docs *.txt
 recursive-exclude rfw_service *~

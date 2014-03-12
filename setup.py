@@ -1,8 +1,21 @@
+#!/usr/bin/env python
+
 import os, io
+import distutils.core
+from distutils.command.install import install
 try:
     from setuptools import setup
 except ImportError:
     from distutils.core import setup
+
+# post install hook
+class post_install(install):
+    def run(self):
+        # call parent
+        install.run(self)
+        # custom post install message
+        print('\nBefore running rfw you must generate or import certificates. See /etc/rfw/deploy/README.rst\n')
+
 
 
 # Utility function to read the README file used for long description.
@@ -31,10 +44,10 @@ setup(
     keywords = "rfw remote firewall iptables REST web service drop accept ban allow whitelist fail2ban",
     url = "https://github.com/securitykiss-com/rfw",
     packages = ['rfw_service'],
-    scripts = ['bin/rfw',],
-    data_files = [('/etc/rfw', ['config/rfw.conf'])],
-    include_package_data=True,
-    long_description=read('README.rst', 'CHANGES.txt'),
+    scripts = ['bin/rfw'],
+    data_files = [('/etc/rfw', ['config/rfw.conf', 'config/white.list']), ('/etc/rfw/deploy', ['config/deploy/rfwgen', 'config/deploy/README.rst'])],
+    long_description = read('README.rst', 'CHANGES.txt'),
+    cmdclass = {'install': post_install},
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Environment :: Console",
@@ -47,8 +60,5 @@ setup(
     ],
 )
 
-# TODO create symlink in bin folder
-
-# TODO add info 'Now run deployment scripts to generate certificates and keys'
 
 

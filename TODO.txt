@@ -34,5 +34,8 @@ TODO
 - bulk updates in order to sync client blocklist with rfw status - ??
   It doesn't seem to be a good idea. Keep it simple, move sync responsibilty to the client. Let the client GET the rules list and PUT the missing ones.
 - when available use ipset for high performance
-- test with fail2ban
+- test and document using rfw with fail2ban
 - initialize iptables with static set of rules - ?? not sure if needed
+- _configexit in Config.py convert to exception - we may need to handle errors in the app
+- fix loglevel problem - by default nothing in /var/log/rfw.log. When rfw -v, display logfile and loglevel info. Add recommendation to run rfw -v first.
+

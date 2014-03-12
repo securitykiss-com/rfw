@@ -64,14 +64,14 @@ def create_requesthandler(rfwconf, cmd_queue, expiry_queue):
             # eliminate ignored IP related commands early to prevent propagating them to expiry queue
             ip1 = rcmd['ip1']
             if iputil.in_iplist(ip1, whitelist):
-                log.warn("Request {} related to whitelisted IP address {} ignored.".format(str(rcmd), ip))
+                log.warn("Request {} related to whitelisted IP address {} ignored.".format(str(rcmd), ip1))
                 # It's more secure to return the same HTTP OK response even if the command is not executed. Don't give attacker extra info.
                 return self.http_resp(200, ctup)
             
             if chain == 'forward':
                 ip2 = rcmd.get('ip2')
                 if ip2 and iputil.in_iplist(ip2, whitelist):
-                    log.warn("Request {} related to whitelisted IP address {} ignored.".format(str(rcmd), ip))
+                    log.warn("Request {} related to whitelisted IP address {} ignored.".format(str(rcmd), ip2))
                     # It's more secure to return the same HTTP OK response even if the command is not executed. Don't give attacker extra info.
                     return self.http_resp(200, ctup)
  

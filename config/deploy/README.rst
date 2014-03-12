@@ -7,7 +7,7 @@ rfwgen
 - server certificate and private key for each server
 
 rfw works with security certificates that are based on IP address (as opposed to prevalent on the web the certificates based on domain name).
-Thus it assumes that the server has static IP and that REST URLs will address it using that IP.
+Thus it assumes that the server has a static IP and that REST URLs will be addressing it using that IP.
 
 Deployment example
 ------------------
@@ -99,7 +99,7 @@ Update ``/etc/rfw/rfw.conf`` in order to point to these files::
 FAQ
 ---
 
-**Can I create a certificate for localhost to test rfw locally**
+**Can I create a certificate for localhost to test rfw locally?**
 
 Yes, but you must use numeric IP: 127.0.0.1 instead of ``localhost``::
 
