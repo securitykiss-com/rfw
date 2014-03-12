@@ -28,4 +28,11 @@ TODO
 - add HTTP server for localhost
 - implement GET and formatting output rules list
 - curl GET, PUT, DELETE, POST examples with various headers (like Accept: json or xml or text for GET)
- 
+- create symlink in bin folder by setup.py
+- add info 'Now run deployment scripts to generate certificates and keys' in setup.py
+- review README
+- bulk updates in order to sync client blocklist with rfw status - ??
+  It doesn't seem to be a good idea. Keep it simple, move sync responsibilty to the client. Let the client GET the rules list and PUT the missing ones.
+- when available use ipset for high performance
+- test with fail2ban
+- initialize iptables with static set of rules - ?? not sure if needed
