@@ -46,6 +46,7 @@ class CommandProcessor(Thread):
                 log.debug('frozen_rcmd: {}'.format(frozen_rcmd))
                 log.debug('rcmds: {}'.format(rcmds))
                 log.debug('rule_exists: {}'.format(rule_exists))                
+
  
                 # check for duplicates, apply rule
                 if modify == 'I':
@@ -58,6 +59,7 @@ class CommandProcessor(Thread):
                         rcmds.add(frozen_rcmd)
                 elif modify == 'D':
                     if rule_exists:
+                        #TODO delete rules in the loop to delete actual iptables duplicates. It's to satisfy idempotency and plays well with common sense
                         cmdexe.apply_rule(modify, rcmd)
                         rcmds.discard(frozen_rcmd)
                     else:
@@ -67,6 +69,9 @@ class CommandProcessor(Thread):
                     pass
             finally:    
                 self.cmd_queue.task_done()
+
+
+
 
 
 
@@ -101,7 +106,7 @@ class ExpiryManager(Thread):
             if item is None:
                 continue
             expiry_tstamp, rcmd = item
-            # skip in the next candidate expires in the future
+            # skip if the next candidate expires in the future
             if expiry_tstamp > time.time():
                 continue
             # get item with lowest priority score. It may be different (but certainly lower) from the one returned by peek() since peek() is not thread safe

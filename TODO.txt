@@ -1,11 +1,21 @@
 
 TODO
 ---------------------------------
-- Ruleset order: blocked ips DROP, ACCEPT ignored IPs [on rfw port], all IPs on rfw port DROP, the rest.
+- Ruleset order: blocked ips DROP, ACCEPT ignored IPs [on rfw port], all IPs on rfw port DROP, the rest. Rule order: 
+- Describe the above in docs: "To prevent nasty surprises we explain here how rfw interacts with iptables. The impact is as minimal as possible. At start rfw inserts the following rules:
+    - on INPUT/OUTPUT insert block all IPs to/from the tcp rfw port
+    - on INPUT/OUTPUT insert allow white.list IPs to/from tcp rfw port
+    - use iptables state module to accept/block ESTABLISHED connections
+    - iptables - why use connection tracking?
+
+- add HTTP server for localhost
+- GET / - list rules - implement GET and formatting output rules list
+- review README
+- curl GET, PUT, DELETE, POST examples with various headers (like Accept: json or xml or text for GET)
+- tidy up REST verb functions on sslserver, add the bulk update role for POST
 - use PUT and DELETE - should be idempotent. Give the option on non-restful requests with GET and additional ?verb=PUT/DELETE param in query
 - Clarify responsibilities of rfw and rfwc
     - rfw need to store credentials in config file so it shouldn't be mixed with rfwc
-    - rfw need to take an optional argument -f config_file
     - rfwc should be the lightweight http client submitting jobs to rfw
     - rfwc may take arguments in 2 forms:
         - single line rule to mimic iptables interface
@@ -21,20 +31,13 @@ TODO
 - The default use case should be DROP individual IP on INPUT chain. Make the action (DROP/ACCEPT) configurable. It may be useful for FORWARD chain.
 - expand documentation, more use cases
 - run as daemon (check fail2ban code), add --non-daemon option at rfw startup
-- expire parameter only for INSERT/PUT commands ? Not clear what to do after expiry time of DELETE command, so let's apply this constraint (expire only for 'I' commands) 
-- ssl config scripts: ca, server, client, public/private, file permissions of the private key
-- convert README.md to README.rst using pandoc
-- tidy up REST verb functions on sslserver
-- add HTTP server for localhost
-- implement GET and formatting output rules list
-- curl GET, PUT, DELETE, POST examples with various headers (like Accept: json or xml or text for GET)
 - create symlink in bin folder by setup.py
-- add info 'Now run deployment scripts to generate certificates and keys' in setup.py
-- review README
 - bulk updates in order to sync client blocklist with rfw status - ??
   It doesn't seem to be a good idea. Keep it simple, move sync responsibilty to the client. Let the client GET the rules list and PUT the missing ones.
 - when available use ipset for high performance
 - test and document using rfw with fail2ban
 - initialize iptables with static set of rules - ?? not sure if needed
-- _configexit in Config.py convert to exception - we may need to handle errors in the app
-
+- consider adding REST command 'do not accept new connections' which inserts -m state connection tracking rule. Potential problems: must obey extended whitelist - other legitimate clients/IPs should be included. Requires intensive testing.  /input/eth/freeze. Seems useful for VPN with long lasting connections but not so much for stateless web traffic.
+- consider adding option for narrowing down the scope of block/allow IP command with port range. It should be optional in query params: ?port_start=1&port_end=1023  It may be useful for blocking 
+low port scanning by ShieldsUp like services, while not blocking the website itself - however it should work anyway without IP range because port scanning hits the INPUT chain while website browsing hits FORWARD chain (after SNAT).
+- how about symmetric rules? When blocking IP on INPUT we also want to block on OUTPUT chain. Add /inout/ chain? Apply connection tracking? Better no. Additional dependency on ip_conntrack module.

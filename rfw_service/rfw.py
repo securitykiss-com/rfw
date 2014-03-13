@@ -4,6 +4,7 @@ from Queue import Queue, PriorityQueue
 from threading import Thread
 import config, rfwconfig, cmdparse, cmdexe, iputil, rfwthreads
 from sslserver import SSLServer, BasicAuthRequestHandler
+import iptables
 
    
 log = logging.getLogger('rfw')
@@ -122,22 +123,29 @@ def parse_args():
 def startup_sanity_check(rfwconf):
     """Check for most common errors to give informative message to the user
     """
-    ipt = rfwconf.iptables_path()
-    # checking if iptables installed
+    ipt_path = rfwconf.iptables_path()
     try:
-        cmdexe.call([ipt, '-h'])
-    except OSError, e:
-        log.critical("Could not find {}. Check if it is correctly installed.".format(ipt))
+        iptables.Iptables.verify_install(ipt_path)
+        iptables.Iptables.verify_permission(ipt_path)
+    except Exception, e:
+        log.critical(e)
         sys.exit(1)
 
-    # checking if root - iptables installed but cannot list rules
-    try:
-        cmdexe.call([ipt, '-n', '-L', 'OUTPUT'])
-    except subprocess.CalledProcessError, e:
-        log.critical("No access to iptables. The program requires root privileges.")
-        sys.exit(1)
-
-    #TODO check if iptables is not pointing to rfwc
+#    # checking if iptables installed
+#    try:
+#        cmdexe.call([ipt, '-h'])
+#    except OSError, e:
+#        log.critical("Could not find {}. Check if it is correctly installed.".format(ipt))
+#        sys.exit(1)
+#
+#    # checking if root - iptables installed but cannot list rules
+#    try:
+#        cmdexe.call([ipt, '-n', '-L', 'OUTPUT'])
+#    except subprocess.CalledProcessError, e:
+#        log.critical("No access to iptables. The program requires root privileges.")
+#        sys.exit(1)
+#
+#    #TODO check if iptables is not pointing to rfwc
 
 
 
@@ -151,6 +159,11 @@ def stop():
     sys.exit(1)
 
 
+# Delete and insert again the rfw init rules
+# The rules block all INPUT/OUTPUT traffic on rfw ssl port except whitelisted IPs
+def rfw_init_rules(rfwconf):
+    #TODO
+    pass
 
 def main():
 
@@ -176,26 +189,25 @@ def main():
 
     startup_sanity_check(rfwconf)
 
-    
-    log.info("Starting rfw server")
-    log.info("Whitelisted IP addresses that will be ignored:")
-    for a in rfwconf.whitelist():
-        log.info('    {}'.format(a))
-
-
     # Install signal handlers
     signal.signal(signal.SIGTERM, __sigTERMhandler)
     signal.signal(signal.SIGINT, __sigTERMhandler)
     # TODO we may also need to ignore signal.SIGHUP in daemon mode
+    
 
 
     rules = cmdexe.iptables_list()
     rcmds = cmdexe.rules_to_rcmds(rules)
-
     # TODO make logging more efficient by deferring arguments evaluation
     log.debug("===== rules =====\n{}".format("\n".join(map(str, rules))))
     log.debug("===== rcmds =====\n{}".format("\n".join(map(str, rcmds))))
 
+    log.info("Starting rfw server")
+    log.info("Whitelisted IP addresses that will be ignored:")
+    for a in rfwconf.whitelist():
+        log.info('    {}'.format(a))
+        #TODO delete and insert again the rules for blacklisting rfw port except whitelisted IPs. Let's call them rfw init rules. 
+        rfw_init_rules(rfwconf)
 
     expiry_queue = PriorityQueue()
     cmd_queue = Queue()
@@ -206,7 +218,6 @@ def main():
                                 rfwconf.default_expire()).start()
 
     rfwthreads.ExpiryManager(cmd_queue, expiry_queue).start()
-
 
     # Passing HandlerClass to SSLServer is very limiting, seems like a bad design of BaseServer. 
     # In order to pass extra info to RequestHandler without using global variable we have to wrap the class in closure.
@@ -221,8 +232,6 @@ def main():
         sa = httpd.socket.getsockname()
         log.info("Serving HTTPS on {} port {}".format(sa[0], sa[1]))
         httpd.serve_forever()
-
-    
 
     assert False, "There should be at least one non-daemon"
 

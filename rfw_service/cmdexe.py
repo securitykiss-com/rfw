@@ -71,7 +71,7 @@ def iptables_construct(modify, rcmd):
 def iptables_list():
     """List and parse iptables rules.
     return list of rules. Single rule is a dict like:
-    {'opt': '--', 'destination': '0.0.0.0/0', 'target': 'DROP', 'chain': 'INPUT', 'prot': 'all', 'bytes': '0', 'source': '2.3.4.5', 'num': '1', 'in': 'eth+', 'pkts': '0', 'out': '*'}
+    {'opt': '--', 'destination': '0.0.0.0/0', 'target': 'DROP', 'chain': 'INPUT', 'prot': 'all', 'bytes': '0', 'source': '2.3.4.5', 'num': '1', 'in': 'eth+', 'pkts': '0', 'out': '*', 'extra': ''}
     """
     rules = []
     out = call(['iptables', '-n', '-L', '-v', '--line-numbers'])
@@ -89,10 +89,16 @@ def iptables_list():
             continue
         if "source" in line and "destination" in line:
             headers = line.split()
+            headers.append('extra')
+            assert len(headers) == 11, "len(headers) is {}".format(len(headers))
             continue
         if chain:
             columns = line.split()
-            if columns and len(headers) == len(columns) and columns[0].isdigit():
+            if columns and columns[0].isdigit():
+                # join all extra columns into one extra field
+                extra = " ".join(columns[10:])
+                columns = columns[:10]
+                columns.append(extra)
                 rule = dict(zip(headers, columns))
                 rule['chain'] = chain
                 rules.append(rule)
@@ -112,13 +118,14 @@ def rules_to_rcmds(rules):
         iface_in = rule['in']
         iface_out = rule['out']
         prot = rule['prot']
+        extra = rule['extra']
 
         # TODO In memory model of iptables rules:
         # 1. There is a raw data model (called rules) containing all rules from 'iptables -L' - this is output from iptables_list().
         # 2. Another simplified data model (called rcmds) with filtered rules corresponding to rfw REST commands. This one will be stored in memory for quick lookup and periodically recreated from actual iptables reading. If so, we need to serialize iptables_list() command in the queue.
 
-        # rfw originated rules may have only DROP/ACCEPT targets and do not specify protocol
-        if target in ['DROP', 'ACCEPT'] and prot == 'all':
+        # rfw originated rules may have only DROP/ACCEPT targets and do not specify protocol and do not have extra args like ports
+        if target in ['DROP', 'ACCEPT'] and prot == 'all' and not extra:
             # Check if the rule matches rfw command format for particular chains. Ignore non-rfw rules
             if chain == 'INPUT':
                 if dst == '0.0.0.0/0' and iface_out == '*':
