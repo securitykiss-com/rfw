@@ -127,26 +127,10 @@ def startup_sanity_check(rfwconf):
     try:
         iptables.Iptables.verify_install(ipt_path)
         iptables.Iptables.verify_permission(ipt_path)
+        #TODO check if iptables is not pointing to rfwc
     except Exception, e:
         log.critical(e)
         sys.exit(1)
-
-#    # checking if iptables installed
-#    try:
-#        cmdexe.call([ipt, '-h'])
-#    except OSError, e:
-#        log.critical("Could not find {}. Check if it is correctly installed.".format(ipt))
-#        sys.exit(1)
-#
-#    # checking if root - iptables installed but cannot list rules
-#    try:
-#        cmdexe.call([ipt, '-n', '-L', 'OUTPUT'])
-#    except subprocess.CalledProcessError, e:
-#        log.critical("No access to iptables. The program requires root privileges.")
-#        sys.exit(1)
-#
-#    #TODO check if iptables is not pointing to rfwc
-
 
 
 def __sigTERMhandler(signum, frame):

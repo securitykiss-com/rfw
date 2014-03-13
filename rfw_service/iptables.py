@@ -44,10 +44,7 @@ class Iptables:
         #TODO check if iptables is pointing to original iptables program (and not to rfwc)
         pass
 
-
-
-
-
+    # Consider it private method. To get the rules use: Iptables.load().rules
     @staticmethod
     def _iptables_list(ipt_path):
         """List and parse iptables rules.
@@ -84,6 +81,28 @@ class Iptables:
                     rule['chain'] = chain
                     rules.append(rule)
         return rules
+    
+    
+    def find(self, query):
+        """Find rules based on query
+        For example:
+            query = {'chain': ['INPUT', 'OUTPUT'], 'prot': ['all'], 'extra': ['']}
+            is searching for the rules where:
+            (chain == INPUT or chain == OUTPUT) and prot == all and extra == ''
+        """
+        ret = []
+        for r in self.rules:
+            matched_all = True    # be optimistic, if inner loop does not break, it means we matched all clauses
+            for param, vals in query.items():
+                rule_val = r[param]
+                if rule_val not in vals:
+                    matched_all = False
+                    break
+            if matched_all:
+                ret.append(r)
+        return ret
+
+
 
 
 

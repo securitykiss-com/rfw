@@ -68,42 +68,7 @@ def iptables_construct(modify, rcmd):
     return lcmd
 
 
-def iptables_list():
-    """List and parse iptables rules.
-    return list of rules. Single rule is a dict like:
-    {'opt': '--', 'destination': '0.0.0.0/0', 'target': 'DROP', 'chain': 'INPUT', 'prot': 'all', 'bytes': '0', 'source': '2.3.4.5', 'num': '1', 'in': 'eth+', 'pkts': '0', 'out': '*', 'extra': ''}
-    """
-    rules = []
-    out = call(['iptables', '-n', '-L', '-v', '--line-numbers'])
-    chains = ['INPUT', 'OUTPUT', 'FORWARD']
-    chain = None
-    header = None
-    for line in out.split('\n'):
-        line = line.strip()
-        if not line:
-            chain = None  #on blank line reset current chain
-            continue
-        m = re.match(r"Chain (\w+) .*", line)
-        if m and m.group(1) in chains:
-            chain = m.group(1)
-            continue
-        if "source" in line and "destination" in line:
-            headers = line.split()
-            headers.append('extra')
-            assert len(headers) == 11, "len(headers) is {}".format(len(headers))
-            continue
-        if chain:
-            columns = line.split()
-            if columns and columns[0].isdigit():
-                # join all extra columns into one extra field
-                extra = " ".join(columns[10:])
-                columns = columns[:10]
-                columns.append(extra)
-                rule = dict(zip(headers, columns))
-                rule['chain'] = chain
-                rules.append(rule)
-    return rules
-    
+#TODO use Iptables.find() search    
 def rules_to_rcmds(rules):
     """Convert list of rules in output format from iptables_list() to rcmd format like:
     {'action': 'DROP', 'ip1': '2.3.4.5', 'iface1': 'eth', 'chain': 'input'}
