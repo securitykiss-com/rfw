@@ -9,7 +9,7 @@ log.addHandler(logging.NullHandler())
 class Iptables:
 
     def __init__(self, rules):
-        # check caller function name
+        # check the caller function name - the poor man's private constructor
         if inspect.stack()[1][3] == 'load':
             self.rules = rules
         else:
@@ -17,7 +17,7 @@ class Iptables:
 
     @staticmethod
     def load(ipt_path='iptables'):
-        rules = _iptables_list(ipt_path)
+        rules = Iptables._iptables_list(ipt_path)
         inst = Iptables(rules)
         return inst
 
@@ -82,7 +82,57 @@ class Iptables:
                     rules.append(rule)
         return rules
     
-    
+   
+    @staticmethod
+    def rule_to_command(modify, rule):
+        """Convert rule in format like:
+        {'opt': '--', 'destination': '0.0.0.0/0', 'target': 'ACCEPT', 'chain': 'INPUT', 'extra': '', 'prot': 'tcp', 'bytes': '0', 'source': '1.2.3.4', 'num': '1', 'in': '*', 'pkts': '0', 'out': '*'}
+        to command like (with modify='I'): 
+        ['iptables', '-I', 'INPUT', '-p', 'tcp', '-d', '0.0.0.0/0', '-s', '1.2.3.4', '-j', 'ACCEPT']
+        It is assumed that the rule has all fields and is from trusted source (from Iptables.find())
+        """
+        #TODO handle extras e.g. 'extra': 'tcp dpt:7373 spt:34543'
+        #TODO add validations
+        #TODO handle wildcards
+        assert modify == 'I' or modify == 'D'
+        chain = rule['chain']
+        assert chain == 'INPUT' or chain == 'OUTPUT' or chain == 'FORWARD'
+        lcmd = ['iptables']
+        lcmd.append('-' + modify)
+        lcmd.append(chain)
+        prot = rule['prot']
+        if prot != 'all':
+            lcmd.append('-p')
+            lcmd.append(prot)
+
+        # TODO enhance. For now handle only source and destination port
+        extra = rule['extra']
+        if extra:
+            es = extra.split()
+            for e in es:
+                if e[:4] == 'dpt:':
+                    dport = e.split(':')[1]
+                    lcmd.append('--dport')
+                    lcmd.append(dport)
+                if e[:4] == 'spt:':
+                    sport = e.split(':')[1]
+                    lcmd.append('--sport')
+                    lcmd.append(sport)
+
+        destination = rule['destination']
+        if destination != '0.0.0.0/0':
+            lcmd.append('-d')
+            lcmd.append(destination)
+        source = rule['source']
+        if source != '0.0.0.0/0':
+            lcmd.append('-s')
+            lcmd.append(source)
+        lcmd.append('-j')
+        lcmd.append(rule['target'])
+        return lcmd
+
+
+
     def find(self, query):
         """Find rules based on query
         For example:

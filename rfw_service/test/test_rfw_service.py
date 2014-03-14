@@ -87,10 +87,11 @@ class TimeUtilTest(TestCase):
 class IptablesTest(TestCase):
 
     def test_find(self):
+
+        # this function must be called 'load' to be able to instantiate mock Iptables
         def load(rules):
             inst = iptables.Iptables(rules)
             return inst
-
 
         r1 = {'opt': '--', 'destination': '0.0.0.0/0', 'target': 'DROP', 'chain': 'INPUT', 'extra': '', 'prot': 'all', 'bytes': '0', 'source': '2.2.2.2', 'num': '9', 'in': 'eth+', 'pkts': '0', 'out': '*'}
         r2 = {'opt': '--', 'destination': '0.0.0.0/0', 'target': 'ACCEPT', 'chain': 'INPUT', 'extra': 'tcp spt:12345', 'prot': 'tcp', 'bytes': '0', 'source': '3.4.5.6', 'num': '10', 'in': '*', 'pkts': '0', 'out': '*'}
@@ -99,6 +100,7 @@ class IptablesTest(TestCase):
 
         rules = [r1, r2, r3, r4]
         inst1 = load(rules)
+        self.assertEqual( inst1.find({}), rules)
         self.assertEqual( inst1.find({'destination': ['0.0.0.0/0']}), [r1, r2, r3])
         self.assertEqual( inst1.find({'target': ['ACCEPT']}), [r2])
         self.assertEqual( inst1.find({'chain': ['OUTPUT']}), [r4])

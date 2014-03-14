@@ -146,8 +146,43 @@ def stop():
 # Delete and insert again the rfw init rules
 # The rules block all INPUT/OUTPUT traffic on rfw ssl port except whitelisted IPs
 def rfw_init_rules(rfwconf):
-    #TODO
-    pass
+    # here are the rules that should be created in the iptables.Iptables format:
+#{'opt': '--', 'destination': '0.0.0.0/0', 'target': 'ACCEPT', 'chain': 'INPUT', 'extra': 'tcp dpt:7373', 'prot': 'tcp', 'bytes': '0', 'source': '1.2.3.4', 'num': '1', 'in': '*', 'pkts': '0', 'out': '*'}
+#{'opt': '--', 'destination': '0.0.0.0/0', 'target': 'DROP', 'chain': 'INPUT', 'extra': 'tcp dpt:7373', 'prot': 'tcp', 'bytes': '0', 'source': '0.0.0.0/0', 'num': '2', 'in': '*', 'pkts': '0', 'out': '*'}
+#{'opt': '--', 'destination': '1.2.3.4', 'target': 'ACCEPT', 'chain': 'OUTPUT', 'extra': 'tcp spt:7373', 'prot': 'tcp', 'bytes': '0', 'source': '0.0.0.0/0', 'num': '1', 'in': '*', 'pkts': '0', 'out': '*'}
+#{'opt': '--', 'destination': '0.0.0.0/0', 'target': 'DROP', 'chain': 'OUTPUT', 'extra': 'tcp spt:7373', 'prot': 'tcp', 'bytes': '0', 'source': '0.0.0.0/0', 'num': '2', 'in': '*', 'pkts': '0', 'out': '*'}
+    ipt_path = rfwconf.iptables_path()
+    rfw_port = rfwconf.outward_server_port()
+    ipt = iptables.Iptables.load(ipt_path)
+
+    ###
+    log.info('Delete existing init rules')
+    # TODO possible improvement here: the rule below may be more specific: include rfwconf.outward_server_ip()    
+    # find 'drop all packets to and from rfw port'
+    drop_input = ipt.find({'target': ['DROP'], 'chain': ['INPUT'], 'prot': ['tcp'], 'extra': ['tcp dpt:' + rfw_port]})
+    log.info(drop_input)
+    log.info('Existing drop input to rfw port {} rules:\n{}'.format(rfw_port, '\n'.join(map(str, drop_input))))
+    for r in drop_input:
+        lcmd = iptables.Iptables.rule_to_command('D', r)
+        cmdexe.call(lcmd)
+    drop_output = ipt.find({'target': ['DROP'], 'chain': ['OUTPUT'], 'prot': ['tcp'], 'extra': ['tcp spt:' + rfw_port]})
+    log.info('Existing drop output to rfw port {} rules:\n{}'.format(rfw_port, '\n'.join(map(str, drop_output))))
+    for r in drop_output:
+        lcmd = iptables.Iptables.rule_to_command('D', r)
+        cmdexe.call(lcmd)
+    
+
+    ###
+    log.info('Insert DROP rfw port init rules')
+    cmdexe.call(['iptables', '-I', 'INPUT', '-p', 'tcp', '--dport', rfw_port, '-j', 'DROP'])
+    cmdexe.call(['iptables', '-I', 'OUTPUT', '-p', 'tcp', '--sport', rfw_port, '-j', 'DROP'])
+
+    ###
+    log.info('Insert ACCEPT whitelist IP rfw port init rules')
+    for ip in rfwconf.whitelist():
+        cmdexe.call(['iptables', '-I', 'INPUT', '-p', 'tcp', '--dport', rfw_port, '-s', ip, '-j', 'ACCEPT'])
+        cmdexe.call(['iptables', '-I', 'OUTPUT', '-p', 'tcp', '--sport', rfw_port, '-d', ip, '-j', 'ACCEPT'])
+
 
 def main():
 
@@ -180,7 +215,7 @@ def main():
     
 
 
-    rules = cmdexe.iptables_list()
+    rules = iptables.Iptables.load().rules
     rcmds = cmdexe.rules_to_rcmds(rules)
     # TODO make logging more efficient by deferring arguments evaluation
     log.debug("===== rules =====\n{}".format("\n".join(map(str, rules))))
@@ -190,8 +225,9 @@ def main():
     log.info("Whitelisted IP addresses that will be ignored:")
     for a in rfwconf.whitelist():
         log.info('    {}'.format(a))
-        #TODO delete and insert again the rules for blacklisting rfw port except whitelisted IPs. Let's call them rfw init rules. 
-        rfw_init_rules(rfwconf)
+
+    # recreate rfw init rules related to rfw port
+    rfw_init_rules(rfwconf)
 
     expiry_queue = PriorityQueue()
     cmd_queue = Queue()

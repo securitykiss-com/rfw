@@ -1,7 +1,7 @@
 from __future__ import print_function
 from threading import Thread
 import time, logging
-import cmdexe, iputil
+import cmdexe, iputil, iptables
 
 log = logging.getLogger('rfw.rfwthreads')
 
@@ -29,7 +29,7 @@ class CommandProcessor(Thread):
             log.debug('Expiry queue after put: {}'.format(self.expiry_queue.queue))
 
     def run(self):
-        rules = cmdexe.iptables_list()
+        rules = iptables.Iptables.load().rules
         # get the set of frozen rcmd
         rcmds = cmdexe.rules_to_rcmds(rules)
     

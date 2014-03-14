@@ -3,6 +3,7 @@
 # It should contain at least one entry
 1.2.3.4
 1.2.3.0/30
+127.0.0.1
 #TODO allow IP ranges: xxx.xxx.xxx.xxx-yyy.yyy.yyy.yyy
 
 
