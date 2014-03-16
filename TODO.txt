@@ -41,3 +41,17 @@ TODO
 - consider adding option for narrowing down the scope of block/allow IP command with port range. It should be optional in query params: ?port_start=1&port_end=1023  It may be useful for blocking 
 low port scanning by ShieldsUp like services, while not blocking the website itself - however it should work anyway without IP range because port scanning hits the INPUT chain while website browsing hits FORWARD chain (after SNAT).
 - how about symmetric rules? When blocking IP on INPUT we also want to block on OUTPUT chain. Add /inout/ chain? Apply connection tracking? Better no. Additional dependency on ip_conntrack module.
+- consider allowing/blocking not only individual IPs but IP ranges - redesign REST API?
+- consider enhanced REST API (+target, +ranges, +flags) :
+/drop/input/eth0/1.2.3.4/32/?expire=120
+/accept/inout/any/3.3.3.3/24/?established_only=true
+/reject/input/any/4.4.4.4/
+established_only and other possible flags should be implemented as plugins
+Having drop and accept in url satisfies some interesting use cases but complicates things: 
+    - drop and accept identical rule, insert and delete - should not conflict
+Having ranges complicates:
+    - what if the range contains whitelisted IP or overlap with whitelisted IP range? Report error to the client.
+- note that unfirewalled, closed ports respond with RST ACK on SYN
+- warn in docs that rfw is applying INSERTs and not APPENDs - this order is more convenient for going from general rules to more specific. The new overlapping rule supersedes the old one. 
+
+

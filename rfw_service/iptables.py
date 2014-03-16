@@ -1,10 +1,30 @@
 import inspect, re, subprocess, logging
+from collections import namedtuple
 
 # Follow the logging convention:
 # - Modules intended as reusable libraries have names 'lib.<modulename>' what allows to configure single parent 'lib' logger for all libraries in the consuming application
 # - Add NullHandler (since Python 2.7) to prevent error message if no other handlers present. The consuming app may add other handlers to 'lib' logger or its children.
 log = logging.getLogger('lib.{}'.format(__name__))
 log.addHandler(logging.NullHandler())
+
+# note that the 'in' attribute from iptables output was renamed to 'inp' to avoid python keyword clash
+IPTABLES_HEADERS =  ['num', 'pkts', 'bytes', 'target', 'prot', 'opt', 'in', 'out', 'source', 'destination'] 
+RULE_HEADERS =      ['chain', 'num', 'pkts', 'bytes', 'target', 'prot', 'opt', 'inp', 'out', 'source', 'destination', 'extra']
+
+RuleProto = namedtuple('Rule', RULE_HEADERS)
+
+
+class Rule(RuleProto):
+    """Lightweight immutable value object to store iptables rule
+    """
+#    def __init__(self, d):
+#        """Construct Rule tuple from a dictionary
+#        """
+#        nones = [None] * len(RuleProto._fields)
+#        dkeys = dict(zip(RuleProto._fields, nones))
+#        dkeys.update(d)
+#        RuleProto.__init__(**dkeys)
+
 
 class Iptables:
 
@@ -44,15 +64,15 @@ class Iptables:
         #TODO check if iptables is pointing to original iptables program (and not to rfwc)
         pass
 
-    # Consider it private method. To get the rules use: Iptables.load().rules
+    # Don't use directly. To get the rules use: Iptables.load().rules
+    # TODO Convert rule from dict to namedtuple (mytuple._asdict() and Tuplename(**mydict))
     @staticmethod
     def _iptables_list(ipt_path):
         """List and parse iptables rules.
-        return list of rules. Single rule is a dict like:
-        {'opt': '--', 'destination': '0.0.0.0/0', 'target': 'DROP', 'chain': 'INPUT', 'prot': 'all', 'bytes': '0', 'source': '2.3.4.5', 'num': '1', 'in': 'eth+', 'pkts': '0', 'out': '*', 'extra': ''}
+        return list of rules of type Rule.
         """
         rules = []
-        out = subprocess.check_output([ipt_path, '-n', '-L', '-v', '--line-numbers'], stderr=subprocess.STDOUT)
+        out = subprocess.check_output([ipt_path, '-n', '-L', '-v', '-x', '--line-numbers'], stderr=subprocess.STDOUT)
         chains = ['INPUT', 'OUTPUT', 'FORWARD']
         chain = None
         header = None
@@ -66,9 +86,10 @@ class Iptables:
                 chain = m.group(1)
                 continue
             if "source" in line and "destination" in line:
-                headers = line.split()
-                headers.append('extra')
-                assert len(headers) == 11, "len(headers) is {}".format(len(headers))
+                # check if iptables output headers make sense 
+                #print(line.split())
+                #print(IPTABLES_HEADERS)
+                assert line.split()  == IPTABLES_HEADERS
                 continue
             if chain:
                 columns = line.split()
@@ -77,38 +98,35 @@ class Iptables:
                     extra = " ".join(columns[10:])
                     columns = columns[:10]
                     columns.append(extra)
-                    rule = dict(zip(headers, columns))
-                    rule['chain'] = chain
+                    columns.insert(0, chain)
+                    #rule = dict(zip(RULE_HEADERS, columns))
+                    #rule['chain'] = chain
+                    rule = Rule(*columns)
                     rules.append(rule)
         return rules
     
    
     @staticmethod
-    def rule_to_command(modify, rule):
-        """Convert rule in format like:
-        {'opt': '--', 'destination': '0.0.0.0/0', 'target': 'ACCEPT', 'chain': 'INPUT', 'extra': '', 'prot': 'tcp', 'bytes': '0', 'source': '1.2.3.4', 'num': '1', 'in': '*', 'pkts': '0', 'out': '*'}
-        to command like (with modify='I'): 
+    def rule_to_command(modify, r):
+        """Convert Rule object r to command like (with modify='I' or modify='D'): 
         ['iptables', '-I', 'INPUT', '-p', 'tcp', '-d', '0.0.0.0/0', '-s', '1.2.3.4', '-j', 'ACCEPT']
-        It is assumed that the rule has all fields and is from trusted source (from Iptables.find())
+        It is assumed that the rule is from trusted source (from Iptables.find())
         """
         #TODO handle extras e.g. 'extra': 'tcp dpt:7373 spt:34543'
         #TODO add validations
         #TODO handle wildcards
         assert modify == 'I' or modify == 'D'
-        chain = rule['chain']
-        assert chain == 'INPUT' or chain == 'OUTPUT' or chain == 'FORWARD'
+        assert r.chain == 'INPUT' or r.chain == 'OUTPUT' or r.chain == 'FORWARD'
         lcmd = ['iptables']
         lcmd.append('-' + modify)
-        lcmd.append(chain)
-        prot = rule['prot']
-        if prot != 'all':
+        lcmd.append(r.chain)
+        if r.prot != 'all':
             lcmd.append('-p')
-            lcmd.append(prot)
+            lcmd.append(r.prot)
 
         # TODO enhance. For now handle only source and destination port
-        extra = rule['extra']
-        if extra:
-            es = extra.split()
+        if r.extra:
+            es = r.extra.split()
             for e in es:
                 if e[:4] == 'dpt:':
                     dport = e.split(':')[1]
@@ -119,12 +137,10 @@ class Iptables:
                     lcmd.append('--sport')
                     lcmd.append(sport)
 
-        destination = rule['destination']
-        if destination != '0.0.0.0/0':
+        if r.destination != '0.0.0.0/0':
             lcmd.append('-d')
             lcmd.append(destination)
-        source = rule['source']
-        if source != '0.0.0.0/0':
+        if r.source != '0.0.0.0/0':
             lcmd.append('-s')
             lcmd.append(source)
         lcmd.append('-j')
@@ -144,7 +160,8 @@ class Iptables:
         for r in self.rules:
             matched_all = True    # be optimistic, if inner loop does not break, it means we matched all clauses
             for param, vals in query.items():
-                rule_val = r[param]
+                #rule_val = r[param]
+                rule_val = getattr(r, param)
                 if rule_val not in vals:
                     matched_all = False
                     break
@@ -154,5 +171,13 @@ class Iptables:
 
 
 
+if __name__ == '__main__':
+    ipt = Iptables.load()
+    print(ipt.rules[0])
+    found = ipt.find({'chain': 'INPUT'})
+    print
+    print(found)
+    print
+    print(ipt.rules)
 
 

@@ -125,7 +125,6 @@ def rules_to_rcmds(rules):
 def apply_rule(modify, rcmd):
     log.debug('apply "{}" to the rule {}'.format(modify, rcmd))
     lcmd = iptables_construct(modify, rcmd)
-    log.debug('Call: {}'.format(' '.join(lcmd)))
     out = call(lcmd)
     if out:
         log.warn("Non empty output from the command: {}. The output: '{}'".format(lcmd, out))
