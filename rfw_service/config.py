@@ -15,10 +15,10 @@ class ConfigError(Exception):
 
 class Config:
     def __init__(self, path, section="config"):
-        if not os.path.isfile(path):
-            raise IOError("Could not find config file {}".format(path))
         self.path = path
         self.section = section
+        if not os.path.isfile(path):
+            raise IOError("Could not find config file {}".format(path))
         self.parser = RawConfigParser(allow_no_value=True)
         self.parser.read(self.path)
 

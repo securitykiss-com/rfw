@@ -17,13 +17,18 @@ RuleProto = namedtuple('Rule', RULE_HEADERS)
 class Rule(RuleProto):
     """Lightweight immutable value object to store iptables rule
     """
-#    def __init__(self, d):
-#        """Construct Rule tuple from a dictionary
-#        """
-#        nones = [None] * len(RuleProto._fields)
-#        dkeys = dict(zip(RuleProto._fields, nones))
-#        dkeys.update(d)
-#        RuleProto.__init__(**dkeys)
+    def __new__(_cls, props):
+        """Construct Rule tuple from a list or a dictionary
+        """
+        if isinstance(props, list):
+            return RuleProto.__new__(_cls, *props)
+        elif isinstance(props, dict):
+            nones = [None] * len(RuleProto._fields)
+            dkeys = dict(zip(RuleProto._fields, nones))
+            dkeys.update(props)
+            return RuleProto.__new__(_cls, **dkeys)
+        else:
+            raise ValueError('The props argument in Rule constructor should be a list or dictionary')
 
 
 class Iptables:
@@ -101,7 +106,7 @@ class Iptables:
                     columns.insert(0, chain)
                     #rule = dict(zip(RULE_HEADERS, columns))
                     #rule['chain'] = chain
-                    rule = Rule(*columns)
+                    rule = Rule(columns)
                     rules.append(rule)
         return rules
     
@@ -144,7 +149,7 @@ class Iptables:
             lcmd.append('-s')
             lcmd.append(source)
         lcmd.append('-j')
-        lcmd.append(rule['target'])
+        lcmd.append(r.target)
         return lcmd
 
 

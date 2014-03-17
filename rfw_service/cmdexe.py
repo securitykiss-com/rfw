@@ -70,51 +70,48 @@ def iptables_construct(modify, rcmd):
 
 #TODO use Iptables.find() search    
 def rules_to_rcmds(rules):
-    """Convert list of rules in output format from iptables_list() to rcmd format like:
+    """Filter and convert the list of iptables.Rules to rcmd format like:
     {'action': 'DROP', 'ip1': '2.3.4.5', 'iface1': 'eth', 'chain': 'input'}
+    rcmd is a simplified data model corresponding to rfw REST commands to allow quick lookups
     return set of frozenset of rcmd items
     """
     rcmds = set()
-    for rule in rules:
-        chain = rule['chain']
-        src = rule['source']
-        dst = rule['destination']
-        target = rule['target']
-        iface_in = rule['in']
-        iface_out = rule['out']
-        prot = rule['prot']
-        extra = rule['extra']
-
-        # TODO In memory model of iptables rules:
-        # 1. There is a raw data model (called rules) containing all rules from 'iptables -L' - this is output from iptables_list().
-        # 2. Another simplified data model (called rcmds) with filtered rules corresponding to rfw REST commands. This one will be stored in memory for quick lookup and periodically recreated from actual iptables reading. If so, we need to serialize iptables_list() command in the queue.
+    for r in rules:
+#        chain = rule['chain']
+#        src = rule['source']
+#        dst = rule['destination']
+#        target = rule['target']
+#        iface_in = rule['in']
+#        iface_out = rule['out']
+#        prot = rule['prot']
+#        extra = rule['extra']
 
         # rfw originated rules may have only DROP/ACCEPT targets and do not specify protocol and do not have extra args like ports
-        if target in ['DROP', 'ACCEPT'] and prot == 'all' and not extra:
+        if r.target in ['DROP', 'ACCEPT'] and r.prot == 'all' and not r.extra:
             # Check if the rule matches rfw command format for particular chains. Ignore non-rfw rules
-            if chain == 'INPUT':
-                if dst == '0.0.0.0/0' and iface_out == '*':
-                    iface1 = iface_in
+            if r.chain == 'INPUT':
+                if r.destination == '0.0.0.0/0' and r.out == '*':
+                    iface1 = r.inp
                     if iface1[-1] == '+':
                         iface1 = iface1[:-1]
                     if iface1 == '*':
                         iface1 = 'any'
-                    rcmd = {'chain': chain.lower(), 'action': target, 'ip1': src, 'iface1': iface1}
+                    rcmd = {'chain': r.chain.lower(), 'action': r.target, 'ip1': r.source, 'iface1': iface1}
                     #TODO check for duplicates here and log warning 
                     rcmds.add(frozenset(rcmd.items()))
     
-            if chain == 'OUTPUT':
-                if src == '0.0.0.0/0' and iface_in == '*' :
-                    iface1 = iface_out
+            if r.chain == 'OUTPUT':
+                if r.source == '0.0.0.0/0' and r.inp == '*' :
+                    iface1 = r.out
                     if iface1[-1] == '+':
                         iface1 = iface1[:-1]
                     if iface1 == '*':
                         iface1 = 'any'
-                    rcmd = {'chain': chain.lower(), 'action': target, 'ip1': dst, 'iface1': iface1}
+                    rcmd = {'chain': r.chain.lower(), 'action': r.target, 'ip1': r.destination, 'iface1': iface1}
                     #TODO check for duplicates here and log warning 
                     rcmds.add(frozenset(rcmd.items()))
     
-            if chain == 'FORWARD':
+            if r.chain == 'FORWARD':
                 #TODO
                 pass
 
