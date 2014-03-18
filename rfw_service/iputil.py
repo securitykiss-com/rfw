@@ -26,7 +26,7 @@ def in_iplist(ip, l):
         if '/' in item:
             a, mask = item.split('/')
             m = mask2long(int(mask))
-            # IP range contains IP address when masked range equals masked address
+            # IP range contains IP address only if the masked range equals the masked address
             if (ip2long(a) & m) == (ip2long(ip) & m):
                 return True
         else:
@@ -85,4 +85,15 @@ def validate_port(port):
          return port
      return False
 
+def validate_mask(mask):
+    """Check if the netmask is valid
+
+    return mask as string in the range [0, 32] or False if not valid
+    """
+    if not mask:
+        return False
+    mask = mask.strip()
+    if mask.isdigit and int(mask) >= 0 and int(mask) <= 32:
+        return mask
+    return False
 

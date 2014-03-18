@@ -10,6 +10,8 @@ log.addHandler(logging.NullHandler())
 # note that the 'in' attribute from iptables output was renamed to 'inp' to avoid python keyword clash
 IPTABLES_HEADERS =  ['num', 'pkts', 'bytes', 'target', 'prot', 'opt', 'in', 'out', 'source', 'destination'] 
 RULE_HEADERS =      ['chain', 'num', 'pkts', 'bytes', 'target', 'prot', 'opt', 'inp', 'out', 'source', 'destination', 'extra']
+RULE_TARGETS =      ['DROP', 'ACCEPT', 'REJECT']
+RULE_CHAINS =       ['INPUT', 'OUTPUT', 'FORWARD']
 
 RuleProto = namedtuple('Rule', RULE_HEADERS)
 
@@ -17,18 +19,27 @@ RuleProto = namedtuple('Rule', RULE_HEADERS)
 class Rule(RuleProto):
     """Lightweight immutable value object to store iptables rule
     """
-    def __new__(_cls, props):
+    def __new__(_cls, *args, **kwargs):
         """Construct Rule tuple from a list or a dictionary
         """
-        if isinstance(props, list):
-            return RuleProto.__new__(_cls, *props)
-        elif isinstance(props, dict):
-            nones = [None] * len(RuleProto._fields)
-            dkeys = dict(zip(RuleProto._fields, nones))
-            dkeys.update(props)
-            return RuleProto.__new__(_cls, **dkeys)
+        if args:
+            if len(args) != 1:
+                raise ValueError('The Rule constructor takes either list, dictionary or named properties')
+            props = args[0]
+            if isinstance(props, list):
+                return RuleProto.__new__(_cls, *props)
+            elif isinstance(props, dict):
+                nones = [None] * len(RuleProto._fields)
+                dkeys = dict(zip(RuleProto._fields, nones))
+                dkeys.update(props)
+                return RuleProto.__new__(_cls, **dkeys)
+            else:
+                raise ValueError('The Rule constructor takes either list, dictionary or named properties')
+        elif kwargs:
+            return RuleProto.__new__(_cls, **kwargs)
         else:
-            raise ValueError('The props argument in Rule constructor should be a list or dictionary')
+            return RuleProto.__new__(_cls, [])
+
 
 
 class Iptables:

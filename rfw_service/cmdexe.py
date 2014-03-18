@@ -77,15 +77,6 @@ def rules_to_rcmds(rules):
     """
     rcmds = set()
     for r in rules:
-#        chain = rule['chain']
-#        src = rule['source']
-#        dst = rule['destination']
-#        target = rule['target']
-#        iface_in = rule['in']
-#        iface_out = rule['out']
-#        prot = rule['prot']
-#        extra = rule['extra']
-
         # rfw originated rules may have only DROP/ACCEPT targets and do not specify protocol and do not have extra args like ports
         if r.target in ['DROP', 'ACCEPT'] and r.prot == 'all' and not r.extra:
             # Check if the rule matches rfw command format for particular chains. Ignore non-rfw rules

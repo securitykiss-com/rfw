@@ -4,7 +4,7 @@ from Queue import Queue, PriorityQueue
 from threading import Thread
 import config, rfwconfig, cmdparse, cmdexe, iputil, rfwthreads
 from sslserver import SSLServer, BasicAuthRequestHandler
-import iptables
+from iptables import Iptables
 
    
 log = logging.getLogger('rfw')
@@ -125,8 +125,8 @@ def startup_sanity_check(rfwconf):
     """
     ipt_path = rfwconf.iptables_path()
     try:
-        iptables.Iptables.verify_install(ipt_path)
-        iptables.Iptables.verify_permission(ipt_path)
+        Iptables.verify_install(ipt_path)
+        Iptables.verify_permission(ipt_path)
         #TODO check if iptables is not pointing to rfwc
     except Exception, e:
         log.critical(e)
@@ -146,14 +146,14 @@ def stop():
 # Delete and insert again the rfw init rules
 # The rules block all INPUT/OUTPUT traffic on rfw ssl port except whitelisted IPs
 def rfw_init_rules(rfwconf):
-    # here are the rules that should be created in the iptables.Iptables format:
+    # here are the rules that should be created in the Iptables format:
 #{'opt': '--', 'destination': '0.0.0.0/0', 'target': 'ACCEPT', 'chain': 'INPUT', 'extra': 'tcp dpt:7373', 'prot': 'tcp', 'bytes': '0', 'source': '1.2.3.4', 'num': '1', 'in': '*', 'pkts': '0', 'out': '*'}
 #{'opt': '--', 'destination': '0.0.0.0/0', 'target': 'DROP', 'chain': 'INPUT', 'extra': 'tcp dpt:7373', 'prot': 'tcp', 'bytes': '0', 'source': '0.0.0.0/0', 'num': '2', 'in': '*', 'pkts': '0', 'out': '*'}
 #{'opt': '--', 'destination': '1.2.3.4', 'target': 'ACCEPT', 'chain': 'OUTPUT', 'extra': 'tcp spt:7373', 'prot': 'tcp', 'bytes': '0', 'source': '0.0.0.0/0', 'num': '1', 'in': '*', 'pkts': '0', 'out': '*'}
 #{'opt': '--', 'destination': '0.0.0.0/0', 'target': 'DROP', 'chain': 'OUTPUT', 'extra': 'tcp spt:7373', 'prot': 'tcp', 'bytes': '0', 'source': '0.0.0.0/0', 'num': '2', 'in': '*', 'pkts': '0', 'out': '*'}
     ipt_path = rfwconf.iptables_path()
     rfw_port = rfwconf.outward_server_port()
-    ipt = iptables.Iptables.load(ipt_path)
+    ipt = Iptables.load(ipt_path)
 
     ###
     log.info('Delete existing init rules')
@@ -163,12 +163,12 @@ def rfw_init_rules(rfwconf):
     log.info(drop_input)
     log.info('Existing drop input to rfw port {} rules:\n{}'.format(rfw_port, '\n'.join(map(str, drop_input))))
     for r in drop_input:
-        lcmd = iptables.Iptables.rule_to_command('D', r)
+        lcmd = Iptables.rule_to_command('D', r)
         cmdexe.call(lcmd)
     drop_output = ipt.find({'target': ['DROP'], 'chain': ['OUTPUT'], 'prot': ['tcp'], 'extra': ['tcp spt:' + rfw_port]})
     log.info('Existing drop output to rfw port {} rules:\n{}'.format(rfw_port, '\n'.join(map(str, drop_output))))
     for r in drop_output:
-        lcmd = iptables.Iptables.rule_to_command('D', r)
+        lcmd = Iptables.rule_to_command('D', r)
         cmdexe.call(lcmd)
     
 
@@ -215,7 +215,7 @@ def main():
     
 
 
-    rules = iptables.Iptables.load().rules
+    rules = Iptables.load().rules
     rcmds = cmdexe.rules_to_rcmds(rules)
     # TODO make logging more efficient by deferring arguments evaluation
     log.debug("===== rules =====\n{}".format("\n".join(map(str, rules))))
