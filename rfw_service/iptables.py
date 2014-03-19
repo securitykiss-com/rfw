@@ -14,8 +14,8 @@ RULE_ATTRS =      ['chain', 'num', 'pkts', 'bytes', 'target', 'prot', 'opt', 'in
 RULE_TARGETS =      ['DROP', 'ACCEPT', 'REJECT']
 RULE_CHAINS =       ['INPUT', 'OUTPUT', 'FORWARD']
 
-RuleProto = namedtuple('Rule', RULE_ATTRS)
 
+RuleProto = namedtuple('Rule', RULE_ATTRS)
 
 class Rule(RuleProto):
     """Lightweight immutable value object to store iptables rule
@@ -100,11 +100,9 @@ class Iptables:
         #TODO check if iptables is pointing to original iptables program (and not to rfwc)
         pass
 
-    # Don't use directly. To get the rules use: Iptables.load().rules
-    # TODO Convert rule from dict to namedtuple (mytuple._asdict() and Tuplename(**mydict))
     @staticmethod
     def _iptables_list():
-        """List and parse iptables rules.
+        """List and parse iptables rules. Do not call directly. Use Iptables.load().rules instead
         return list of rules of type Rule.
         """
         rules = []
@@ -123,8 +121,6 @@ class Iptables:
                 continue
             if "source" in line and "destination" in line:
                 # check if iptables output headers make sense 
-                #print(line.split())
-                #print(IPTABLES_HEADERS)
                 assert line.split()  == IPTABLES_HEADERS
                 continue
             if chain:
@@ -135,8 +131,6 @@ class Iptables:
                     columns = columns[:10]
                     columns.append(extra)
                     columns.insert(0, chain)
-                    #rule = dict(zip(RULE_HEADERS, columns))
-                    #rule['chain'] = chain
                     rule = Rule(columns)
                     rules.append(rule)
         return rules

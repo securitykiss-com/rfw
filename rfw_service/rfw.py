@@ -2,7 +2,7 @@ from __future__ import print_function
 import argparse, logging, re, sys, struct, socket, subprocess, signal, time
 from Queue import Queue, PriorityQueue
 from threading import Thread
-import config, rfwconfig, cmdparse, cmdexe, iputil, rfwthreads, iptables
+import config, rfwconfig, cmdparse, iputil, rfwthreads, iptables
 from sslserver import SSLServer, BasicAuthRequestHandler
 from iptables import Iptables
 
@@ -38,7 +38,7 @@ def create_requesthandler(rfwconf, cmd_queue, expiry_queue):
 
         def check_whitelist_conflict(self, whitelist, ip):
             if ip != '0.0.0.0/0' and iputil.ip_in_list(ip, whitelist):
-                msg = 'Ignoring request conflicting with the whitelist'
+                msg = 'Ignoring the request conflicting with the whitelist'
                 log.warn(msg)
                 raise Exception(msg)
 
@@ -206,10 +206,8 @@ def main():
 
 
     rules = Iptables.load().rules
-    rcmds = cmdexe.rules_to_rcmds(rules)
     # TODO make logging more efficient by deferring arguments evaluation
     log.debug("===== rules =====\n{}".format("\n".join(map(str, rules))))
-    log.debug("===== rcmds =====\n{}".format("\n".join(map(str, rcmds))))
 
     log.info("Starting rfw server")
     log.info("Whitelisted IP addresses that will be ignored:")

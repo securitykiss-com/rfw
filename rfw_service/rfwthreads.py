@@ -1,7 +1,7 @@
 from __future__ import print_function
 from threading import Thread
 import time, logging
-import cmdexe, iputil, iptables
+import iputil, iptables
 from iptables import Iptables
 
 log = logging.getLogger('rfw.rfwthreads')
