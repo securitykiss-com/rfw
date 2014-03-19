@@ -106,7 +106,7 @@ def build_rule(p):
                 ip2 = iputil.validate_ip(p[i])
                 i = i + 1
                 if not ip2:
-                    raise ValueError('Incorrect IP address')
+                    raise ValueError('Incorrect IP address or netmask')
                 if len(p) > i:
                     # now it must be the correct netmask if something was given after IP
                     if iputil.validate_mask_limit(p[i]):
@@ -116,10 +116,18 @@ def build_rule(p):
 
 
     if chain in ['INPUT', 'OUTPUT']:
-        if len(p) > 4 and not mask1:
-            raise ValueError('Incorrect netmask value')
         if len(p) > 5:
             raise ValueError('Too many details for the {} chain'.format(chain))
+        if len(p) > 4 and not mask1:
+            raise ValueError('Incorrect netmask value')
+
+    if chain in ['FORWARD']:
+        if len(p) > 8:
+            raise ValueError('Too many details for the {} chain'.format(chain))
+        if len(p) > 7 and (not mask1 or not mask2):
+            raise ValueError('Incorrect netmask value')
+        if len(p) > 6 and not mask1 and not mask2:
+            raise ValueError('Incorrect netmask value')
 
     if chain == 'INPUT':
         inp = iface1

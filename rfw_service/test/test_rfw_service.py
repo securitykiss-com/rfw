@@ -83,6 +83,3 @@ class IptablesTest(TestCase):
         self.assertEquals(str(r3), "Rule(chain='INPUT', num=None, pkts=None, bytes=None, target=None, prot='all', opt='--', inp='*', out='*', source='1.2.3.4', destination='0.0.0.0/0', extra='')")
 
 
-    def test_equal_rule(self):
-        pass
-
