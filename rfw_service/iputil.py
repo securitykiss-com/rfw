@@ -17,6 +17,8 @@ def mask2long(mask):
     assert isinstance(mask, (int, long)) and mask >= 0 and mask <= 32
     return -(1 << (32 - mask)) 
 
+
+# deprecated
 def in_iplist(ip, l):
     """Check if IP address is in the list.
     List l may contain individual IP addresses or CIDR ranges.
@@ -33,6 +35,50 @@ def in_iplist(ip, l):
             if item == ip:
                 return True
     return False
+
+def ip_in_list(ip, l):
+    """Check if IP address given as string is in the list.
+    Both the ip and list may be individual IP addresses or CIDR ranges.
+    """
+    for c in l:
+        if cidr_overlap(ip, c):
+            return True
+    return False
+
+
+def cidr2range(c):
+    """Convert CIDR string or single IP address as string to IP range given as tuple of integers (inclusive)
+    """
+    if '/' in c:
+        a, mask = c.split('/')
+        m = mask2long(int(mask))
+        start = ip2long(a) & m
+        end = start | ~m
+    else:
+        start = ip2long(c)
+        end = start
+    return (start, end)
+    
+
+def cidr_overlap(c1, c2):
+    """Check if IP ranges given as CIDR strings overlap
+    """
+    r1_ipstart, r1_ipend = cidr2range(c1)
+    r2_ipstart, r2_ipend = cidr2range(c2)
+    return ip_ranges_overlap(r1_ipstart, r1_ipend, r2_ipstart, r2_ipend)
+    
+
+
+
+def ip_ranges_overlap(r1_ipstart, r1_ipend, r2_ipstart, r2_ipend):
+    """Check if two IP ranges given as inclusive integer limited ranges overlap
+    """
+    if not isinstance(r1_ipstart, (int, long)) or not isinstance(r1_ipend, (int, long)) or not isinstance(r2_ipstart, (int, long)) or not isinstance(r2_ipend, (int, long)):
+            raise ValueError('IP address should be integer')
+    if r1_ipstart > r1_ipend or r2_ipstart > r2_ipend:
+        raise ValueError('IP start cannot be greater than IP end. r1_ipstart={}, r1_ipend={}, r2_ipstart={}, r2_ipend={}'.format(r1_ipstart, r1_ipend, r2_ipstart, r2_ipend))
+    return r1_ipstart <= r2_ipend and r2_ipstart <= r1_ipend
+
 
 
 def validate_ip_cidr(ip, allow_no_mask=False):
@@ -93,7 +139,15 @@ def validate_mask(mask):
     if not mask:
         return False
     mask = mask.strip()
-    if mask.isdigit and int(mask) >= 0 and int(mask) <= 32:
+    if mask.isdigit() and int(mask) >= 0 and int(mask) <= 32:
         return mask
     return False
+
+def validate_mask_limit(mask):
+    mask = validate_mask(mask)
+    if mask and int(mask) >= 24:
+        return mask
+    else:
+        return False
+
 

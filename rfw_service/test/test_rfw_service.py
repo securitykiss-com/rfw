@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-import cmdparse, cmdexe, timeutil, iptables
+import cmdparse, cmdexe, timeutil, iptables, iputil
 from iptables import Rule
 
 class CmdParseTest(TestCase):
@@ -8,10 +8,10 @@ class CmdParseTest(TestCase):
     def test_parse_command(self):
         self.assertEqual( 
                 cmdparse.parse_command_path('/drop/input/eth0/5.6.7.8'), 
-                    ('drop', Rule(chain='INPUT', num=None, pkts=None, bytes=None, target='DROP', prot=None, opt=None, inp='eth0', out='*', source='5.6.7.8', destination='0.0.0.0/0', extra=None)))
+                    ('drop', Rule(chain='INPUT', num=None, pkts=None, bytes=None, target='DROP', prot='all', opt='--', inp='eth0', out='*', source='5.6.7.8', destination='0.0.0.0/0', extra='')))
         self.assertEqual( 
                 cmdparse.parse_command_path('/drop/input/eth /5.6.7.8/'), 
-                    ('drop', Rule(chain='INPUT', num=None, pkts=None, bytes=None, target='DROP', prot=None, opt=None, inp='eth+', out='*', source='5.6.7.8', destination='0.0.0.0/0', extra=None)))
+                    ('drop', Rule(chain='INPUT', num=None, pkts=None, bytes=None, target='DROP', prot='all', opt='--', inp='eth+', out='*', source='5.6.7.8', destination='0.0.0.0/0', extra='')))
 
 
 
@@ -61,7 +61,7 @@ class CmdParseTest(TestCase):
 
 class CmdExeTest(TestCase):
 
-    def test_iptables_construct(self):
+    def not_test_iptables_construct(self):
         self.assertEqual( cmdexe.iptables_construct('I', {'action': 'DROP', 'chain': 'input', 'iface1': 'eth', 'ip1': '11.22.33.44', 'expire': '3600'}), 
                 ['iptables', '-I', 'INPUT', '-i', 'eth+', '-s', '11.22.33.44', '-j', 'DROP'] )
         self.assertEqual( cmdexe.iptables_construct('I', {'action': 'ACCEPT', 'chain': 'output', 'iface1': 'eth0', 'ip1': '11.22.33.44', 'expire': '3600'}), 
@@ -76,6 +76,25 @@ class CmdExeTest(TestCase):
                 ['iptables', '-I', 'FORWARD', '-i', 'ppp+', '-s', '11.22.33.44', '-d', '5.6.7.8', '-j', 'DROP'] )
         self.assertEqual( cmdexe.iptables_construct('I', {'action': 'DROP', 'chain': 'forward', 'iface1': 'ppp', 'ip1': '11.22.33.44', 'iface2': 'eth0', 'ip2': '5.6.7.8', 'expire': '3600'}), 
                 ['iptables', '-I', 'FORWARD', '-i', 'ppp+', '-s', '11.22.33.44', '-o', 'eth0', '-d', '5.6.7.8', '-j', 'DROP'] )
+
+
+
+class IpUtilTest(TestCase):
+
+    def test_ip2long(self):
+        self.assertEqual(iputil.ip2long('1.2.3.4'), 16909060)
+        self.assertEqual(iputil.ip2long('1.2.3.250'), 16909306)
+        self.assertEqual(iputil.ip2long('250.2.3.4'), 4194435844)
+        self.assertEqual(iputil.ip2long('129.2.3.129'), 2164392833)
+
+    def test_cidr2range(self):
+        self.assertEqual(iputil.cidr2range('1.2.3.4'), (16909060, 16909060))
+        self.assertEqual(iputil.cidr2range('1.2.3.4/32'), (16909060, 16909060))
+        self.assertEqual(iputil.cidr2range('1.2.3.4/31'), (16909060, 16909061))
+        self.assertEqual(iputil.cidr2range('1.2.3.4/30'), (16909060, 16909063))
+        self.assertEqual(iputil.cidr2range('1.2.3.4/0'), (0, 4294967295))
+        self.assertEqual(iputil.cidr2range('129.2.3.129/28'), (2164392832, 2164392847))
+
 
 #TODO extract reusable libraries along with testcases
 class TimeUtilTest(TestCase):
@@ -96,12 +115,13 @@ class TimeUtilTest(TestCase):
 
 class IptablesTest(TestCase):
 
+    # this function must be called 'load' to be able to instantiate mock Iptables
+    def load(rules):
+        inst = iptables.Iptables(rules)
+        return inst
+
     def not_test_find(self):
 
-        # this function must be called 'load' to be able to instantiate mock Iptables
-        def load(rules):
-            inst = iptables.Iptables(rules)
-            return inst
 
         r1 = {'opt': '--', 'destination': '0.0.0.0/0', 'target': 'DROP', 'chain': 'INPUT', 'extra': '', 'prot': 'all', 'bytes': '0', 'source': '2.2.2.2', 'num': '9', 'in': 'eth+', 'pkts': '0', 'out': '*'}
         r2 = {'opt': '--', 'destination': '0.0.0.0/0', 'target': 'ACCEPT', 'chain': 'INPUT', 'extra': 'tcp spt:12345', 'prot': 'tcp', 'bytes': '0', 'source': '3.4.5.6', 'num': '10', 'in': '*', 'pkts': '0', 'out': '*'}
@@ -119,5 +139,15 @@ class IptablesTest(TestCase):
         self.assertEqual( inst1.find({'chain': ['OUTPUT', 'INPUT'], 'target':['ACCEPT', 'DROP']}), rules)
         self.assertEqual( inst1.find({'chain': ['OUTPUT', 'INPUT'], 'target':['DROP'], 'extra': ['']}), [r1, r4])
         
+    def test_create_rule(self):
+        """Test creating Rule objects in various ways
+        """
+        r1 = Rule({'chain': 'INPUT', 'source': '1.2.3.4'})
+        self.assertEquals(str(r1), "Rule(chain='INPUT', num=None, pkts=None, bytes=None, target=None, prot='all', opt='--', inp='*', out='*', source='1.2.3.4', destination='0.0.0.0/0', extra='')")
+        r3 = Rule(['INPUT', None, None, None, None, 'all', '--', '*', '*', '1.2.3.4', '0.0.0.0/0', ''])
+        self.assertEquals(str(r3), "Rule(chain='INPUT', num=None, pkts=None, bytes=None, target=None, prot='all', opt='--', inp='*', out='*', source='1.2.3.4', destination='0.0.0.0/0', extra='')")
 
+
+    def test_equal_rule(self):
+        pass
 

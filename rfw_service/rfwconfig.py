@@ -24,9 +24,6 @@ class RfwConfig(config.Config):
             if self.is_outward_server() or self.is_local_server_authentication():
                 self.auth_username()
                 self.auth_password()
-            self.chain_input_action()
-            self.chain_output_action()
-            self.chain_forward_action()
             self.whitelist_file()
             self.whitelist()  # it will also cache the whitelist result
             self.iptables_path()
@@ -157,16 +154,6 @@ class RfwConfig(config.Config):
             raise self.config_error(str(e))
 
 
-    def chain_input_action(self):
-        return self._chain_action('chain.input.action')
-
-    def chain_output_action(self):
-        return self._chain_action('chain.output.action')
-
-    def chain_forward_action(self):
-        return self._chain_action('chain.forward.action')
-
-   
     def whitelist_file(self):
         return self._getfile("whitelist.file")
 
@@ -198,6 +185,8 @@ class RfwConfig(config.Config):
 
 
     def default_expire(self):
+        """return parsed default.expire in seconds as string
+        """
         exp = self._get('default.expire')
         if not exp:
             raise self.config_error("default.expire missing")

@@ -2,6 +2,7 @@ from __future__ import print_function
 from threading import Thread
 import time, logging
 import cmdexe, iputil, iptables
+from iptables import Iptables
 
 log = logging.getLogger('rfw.rfwthreads')
 
@@ -17,53 +18,55 @@ class CommandProcessor(Thread):
         self.setDaemon(True)
 
 
-    def schedule_expiry(self, rcmd):
+    def schedule_expiry(self, rule, directives):
         # put time-bounded command to the expiry_queue
-        expire = rcmd.get('expire', self.default_expire)
+        expire = directives.get('expire', self.default_expire)
         assert isinstance(expire, str) and expire.isdigit()
-        # expire=0 means permanent rule which is not added to the expiry queue
-        if expire:
+        # expire='0' means permanent rule which is not added to the expiry queue
+        if int(expire):
             expiry_tstamp = time.time() + int(expire)
-            extup = (expiry_tstamp, rcmd)
+            extup = (expiry_tstamp, expire, rule)
             self.expiry_queue.put_nowait(extup)
-            log.debug('Expiry queue after put: {}'.format(self.expiry_queue.queue))
+            log.debug('PUT to Expiry Queue. expiry_queue: {}'.format(self.expiry_queue.queue))
+
+
+    def read_rfw_rules(self):
+        ipt = Iptables.load()
+        # rfw originated rules may have only DROP/ACCEPT/REJECT targets and do not specify protocol and do not have extra args like ports
+        input_rules = ipt.find({'target': iptables.RULE_TARGETS, 'chain': ['INPUT'], 'destination': ['0.0.0.0/0'], 'out': ['*'], 'prot': [''], 'extra': ['']})
+        output_rules = ipt.find({'target': iptables.RULE_TARGETS, 'chain': ['OUTPUT'], 'source': ['0.0.0.0/0'], 'inp': ['*'], 'prot': [''], 'extra': ['']})
+        forward_rules = ipt.find({'target': iptables.RULE_TARGETS, 'chain': ['FORWARD'], 'prot': [''], 'extra': ['']})
+        ruleset = set()
+        ruleset.update(input_rules)
+        ruleset.update(output_rules)
+        ruleset.update(forward_rules)
+        return ruleset
+
 
     def run(self):
-        rules = iptables.Iptables.load().rules
-        # get the set of frozen rcmd
-        rcmds = cmdexe.rules_to_rcmds(rules)
-    
-        #TODO make sure if the rcmds format from iptables_list()/rules_to_rcmds() conforms to REST rcmds from cmdparse 
-        #TODO add consistency checks
-    
+        ruleset = self.read_rfw_rules()
         while True:
-            modify, rcmd = self.cmd_queue.get()
+            modify, rule, directives = self.cmd_queue.get()
             try:
-                # immutable rcmd dict for rcmds set operations
-                frozen_rcmd = frozenset(rcmd.items())
-                log.debug("Got new item from the command queue: '{}' {}".format(modify, rcmd))
-                rule_exists = frozen_rcmd in rcmds
-                log.debug('frozen_rcmd: {}'.format(frozen_rcmd))
-                log.debug('rcmds: {}'.format(rcmds))
-                log.debug('rule_exists: {}'.format(rule_exists))                
-
+                rule_exists = rule in ruleset
+                log.debug('{} rule_exists: {}'.format(rule, rule_exists))
  
                 # check for duplicates, apply rule
                 if modify == 'I':
                     if rule_exists:
-                        log.warn("Trying to insert existing rule: {}. Command ignored.".format(rcmd))
+                        log.warn("Trying to insert existing rule: {}. Command ignored.".format(rule))
                     else:
-                        cmdexe.apply_rule(modify, rcmd)
-                        # schedule expiry timeout if present only for Insert rules and only if rule didn't exist before (so it was added now)
-                        self.schedule_expiry(rcmd)
-                        rcmds.add(frozen_rcmd)
+                        Iptables.exe_rule(modify, rule)
+                        # schedule expiry timeout if present. Only for Insert rules and only if the rule didn't exist before (so it was added now)
+                        self.schedule_expiry(rule, directives)
+                        ruleset.add(rule)
                 elif modify == 'D':
                     if rule_exists:
                         #TODO delete rules in the loop to delete actual iptables duplicates. It's to satisfy idempotency and plays well with common sense
-                        cmdexe.apply_rule(modify, rcmd)
-                        rcmds.discard(frozen_rcmd)
+                        Iptables.exe_rule(modify, rule)
+                        ruleset.discard(rule)
                     else:
-                        log.warn("Trying to delete not existing rule: {}. Command ignored.".format(rcmd))
+                        log.warn("Trying to delete not existing rule: {}. Command ignored.".format(rule))
                 elif modify == 'L':
                     #TODO rereading the iptables?
                     pass
@@ -101,21 +104,25 @@ class ExpiryManager(Thread):
         while True:
             time.sleep(ExpiryManager.POLL_INTERVAL)
 
-            # Move expired items from expiry_queue to cmd_queue
+            # Move expired items from expiry_queue to cmd_queue for deletion
             item = peek(self.expiry_queue)
             if item is None:
                 continue
-            expiry_tstamp, rcmd = item
+            expiry_tstamp, expire, rule = item
             # skip if the next candidate expires in the future
             if expiry_tstamp > time.time():
                 continue
-            # get item with lowest priority score. It may be different (but certainly lower) from the one returned by peek() since peek() is not thread safe
-            expiry_tstamp, rcmd = self.expiry_queue.get()
-            log.debug('Expiry queue after get: {}'.format(self.expiry_queue.queue))
-            # expire parameter is valid only for 'I' (insert) commands, so expiring the rule is as simple as deleting it
-            tup = ('D', rcmd)
-            self.cmd_queue.put_nowait(tup)
-            self.expiry_queue.task_done()
+            try:
+                # get item with lowest priority score. It may be different (but certainly lower) from the one returned by peek() since peek() is not thread safe
+                expiry_tstamp, expire, rule = self.expiry_queue.get()
+                log.debug('GET from Expiry Queue. expiry_queue: {}'.format(self.expiry_queue.queue))
+                # expire parameter is valid only for 'I' (insert) commands, so expiring the rule is as simple as deleting it
+                directives = {}
+                tup = ('D', rule, directives)
+                self.cmd_queue.put_nowait(tup)
+            finally:
+                self.expiry_queue.task_done()
+
 
             
 

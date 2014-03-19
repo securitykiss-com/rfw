@@ -79,7 +79,7 @@ class PathError(Exception):
 
 
 
-# return dictionary:
+# return tuple:
 # '/' -> tuple()
 # '/list' -> ('list', '')
 # '/list/input' -> ('list', 'input')
@@ -122,7 +122,6 @@ def parse_command_path(path):
 
 
 # From the path parts tuple build and return Rule for drop/accept/reject type of command
-# RULE_HEADERS =      ['chain', 'num', 'pkts', 'bytes', 'target', 'prot', 'opt', 'inp', 'out', 'source', 'destination', 'extra']
 def build_rule(p):
     # There must be at least 4 parts like in /drop/input/eth0/1.2.3.4
     if len(p) < 4:
@@ -149,7 +148,7 @@ def build_rule(p):
     if len(p) > 4:
         i = 4
         # optionally the netmask like: /drop/input/eth0/1.2.3.4/24
-        if iputil.validate_mask(p[i]):
+        if iputil.validate_mask_limit(p[i]):
             mask1 = p[i]
             i = i + 1
         if len(p) > i:
@@ -166,7 +165,7 @@ def build_rule(p):
                     raise ValueError('Incorrect IP address')
                 if len(p) > i:
                     # now it must be the correct netmask if something was given after IP
-                    if iputil.validate_mask(p[i]):
+                    if iputil.validate_mask_limit(p[i]):
                         mask2 = p[i]
                     else:
                         raise ValueError('Incorrect netmask value')
@@ -246,8 +245,7 @@ def parse_command_query(query):
     if expire:
         interval = timeutil.parse_interval(expire)
         if interval is None:
-            ret['error'] = 'Wrong expire parameter value'
-            return ret
+            raise ValueError('Incorrect expire parameter value')
         ret['expire'] = str(interval)
 
     wait = params.get('wait')
@@ -256,8 +254,7 @@ def parse_command_query(query):
         if wait == 'true':
             ret['wait'] = wait
         else:
-            ret['error'] = 'Incorrect wait parameter value'
-
+            raise ValueError('Incorrect wait parameter value')
     return ret
 
 
@@ -274,9 +271,9 @@ def parse_command(url):
     parsed = urlparse.urlparse(url)
     path, query = parsed.path, parsed.query
 
-    rule = parse_command_path(path)
+    action, rule = parse_command_path(path)
     directives = parse_command_query(query)
 
-    return (rule, directives) 
+    return (action, rule, directives) 
 
 

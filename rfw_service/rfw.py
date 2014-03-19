@@ -2,7 +2,7 @@ from __future__ import print_function
 import argparse, logging, re, sys, struct, socket, subprocess, signal, time
 from Queue import Queue, PriorityQueue
 from threading import Thread
-import config, rfwconfig, cmdparse, cmdexe, iputil, rfwthreads
+import config, rfwconfig, cmdparse, cmdexe, iputil, rfwthreads, iptables
 from sslserver import SSLServer, BasicAuthRequestHandler
 from iptables import Iptables
 
@@ -28,56 +28,38 @@ def create_requesthandler(rfwconf, cmd_queue, expiry_queue):
             self.end_headers()
             self.wfile.write(content + "\r\n")
             return
- 
+
+        def check_whitelist_conflict(self, whitelist, ip):
+            if ip != '0.0.0.0/0' and iputil.ip_in_list(ip, whitelist):
+                msg = 'Ignoring request conflicting with the whitelist'
+                log.warn(msg)
+                raise Exception(msg)
+
 
         def add_command(self, modify):
             # modify should be 'D' for Delete or 'I' for Insert understood as -D and -I iptables flags
             assert modify == 'D' or modify == 'I'
             log.debug('self.path: {}'.format(self.path))
-            
-            # parse_command does not raise errors. Errors returned in response
-            rcmd = cmdparse.parse_command(self.path)
-
-            log.debug('Parsed command: {}'.format(rcmd))
-            
-            error = rcmd.get('error')
-            if error:
-                return self.http_resp(400, error) # Bad Request
-            
-            chain = rcmd['chain']
-            if chain == 'input':
-                action = rfwconf.chain_input_action()
-            elif chain == 'output':
-                action = rfwconf.chain_output_action()
-            elif chain == 'forward':
-                action = rfwconf.chain_forward_action()
-            else:
-                assert False, "Wrong chain name: {}".format(chain)
-                        
-            assert action in ['DROP', 'ACCEPT']
-
-            rcmd['action'] = action
-            ctup = (modify, rcmd)
-            log.debug('Final command tuple: {}'.format(str(ctup)))
-
-            whitelist = rfwconf.whitelist()           
-
-            # eliminate ignored IP related commands early to prevent propagating them to expiry queue
-            ip1 = rcmd['ip1']
-            if iputil.in_iplist(ip1, whitelist):
-                log.warn("Request {} related to whitelisted IP address {} ignored.".format(str(rcmd), ip1))
-                # It's more secure to return the same HTTP OK response even if the command is not executed. Don't give attacker extra info.
-                return self.http_resp(200, ctup)
-            
-            if chain == 'forward':
-                ip2 = rcmd.get('ip2')
-                if ip2 and iputil.in_iplist(ip2, whitelist):
-                    log.warn("Request {} related to whitelisted IP address {} ignored.".format(str(rcmd), ip2))
-                    # It's more secure to return the same HTTP OK response even if the command is not executed. Don't give attacker extra info.
+           
+            try:
+                action, rule, directives = cmdparse.parse_command(self.path)
+                log.debug('\nAction: {}\nRule: {}\nDirectives: {}'.format(action, rule, directives))
+                if action == 'list':
+                    pass
+                elif action.upper() in iptables.RULE_TARGETS:
+                    # eliminate ignored/whitelisted IP related commands early to prevent propagating them to expiry queue
+                    self.check_whitelist_conflict(rfwconf.whitelist(), rule.source)
+                    self.check_whitelist_conflict(rfwconf.whitelist(), rule.destination)
+                    ctup = (modify, rule, directives)
+                    log.debug('Final command tuple: {}'.format(str(ctup)))
+                    cmd_queue.put_nowait(ctup)
                     return self.http_resp(200, ctup)
- 
-            cmd_queue.put_nowait(ctup)
-            return self.http_resp(200, ctup)
+                else:
+                    raise Exception('Unrecognized action: {}'.format(action))
+            except Exception, e:
+                #log.error(e.message, str(e))
+                log.exception('asdfasdfasdf')
+                return self.http_resp(400, e.message) # Bad Request
             
     
         def do_PUT(self):
@@ -120,14 +102,13 @@ def parse_args():
     return args
 
 
-def startup_sanity_check(rfwconf):
+def startup_sanity_check():
     """Check for most common errors to give informative message to the user
     """
-    ipt_path = rfwconf.iptables_path()
     try:
-        Iptables.verify_install(ipt_path)
-        Iptables.verify_permission(ipt_path)
-        #TODO check if iptables is not pointing to rfwc
+        Iptables.verify_install()
+        Iptables.verify_permission()
+        Iptables.verify_original()
     except Exception, e:
         log.critical(e)
         sys.exit(1)
@@ -151,9 +132,8 @@ def rfw_init_rules(rfwconf):
 #{'opt': '--', 'destination': '0.0.0.0/0', 'target': 'DROP', 'chain': 'INPUT', 'extra': 'tcp dpt:7373', 'prot': 'tcp', 'bytes': '0', 'source': '0.0.0.0/0', 'num': '2', 'in': '*', 'pkts': '0', 'out': '*'}
 #{'opt': '--', 'destination': '1.2.3.4', 'target': 'ACCEPT', 'chain': 'OUTPUT', 'extra': 'tcp spt:7373', 'prot': 'tcp', 'bytes': '0', 'source': '0.0.0.0/0', 'num': '1', 'in': '*', 'pkts': '0', 'out': '*'}
 #{'opt': '--', 'destination': '0.0.0.0/0', 'target': 'DROP', 'chain': 'OUTPUT', 'extra': 'tcp spt:7373', 'prot': 'tcp', 'bytes': '0', 'source': '0.0.0.0/0', 'num': '2', 'in': '*', 'pkts': '0', 'out': '*'}
-    ipt_path = rfwconf.iptables_path()
     rfw_port = rfwconf.outward_server_port()
-    ipt = Iptables.load(ipt_path)
+    ipt = Iptables.load()
 
     ###
     log.info('Delete existing init rules')
@@ -163,25 +143,23 @@ def rfw_init_rules(rfwconf):
     log.info(drop_input)
     log.info('Existing drop input to rfw port {} rules:\n{}'.format(rfw_port, '\n'.join(map(str, drop_input))))
     for r in drop_input:
-        lcmd = Iptables.rule_to_command('D', r)
-        cmdexe.call(lcmd)
+        Iptables.exe_rule('D', r)
     drop_output = ipt.find({'target': ['DROP'], 'chain': ['OUTPUT'], 'prot': ['tcp'], 'extra': ['tcp spt:' + rfw_port]})
     log.info('Existing drop output to rfw port {} rules:\n{}'.format(rfw_port, '\n'.join(map(str, drop_output))))
     for r in drop_output:
-        lcmd = Iptables.rule_to_command('D', r)
-        cmdexe.call(lcmd)
+        Iptables.exe_rule('D', r)
     
 
     ###
     log.info('Insert DROP rfw port init rules')
-    cmdexe.call(['iptables', '-I', 'INPUT', '-p', 'tcp', '--dport', rfw_port, '-j', 'DROP'])
-    cmdexe.call(['iptables', '-I', 'OUTPUT', '-p', 'tcp', '--sport', rfw_port, '-j', 'DROP'])
+    Iptables.exe(['-I', 'INPUT', '-p', 'tcp', '--dport', rfw_port, '-j', 'DROP'])
+    Iptables.exe(['-I', 'OUTPUT', '-p', 'tcp', '--sport', rfw_port, '-j', 'DROP'])
 
     ###
     log.info('Insert ACCEPT whitelist IP rfw port init rules')
     for ip in rfwconf.whitelist():
-        cmdexe.call(['iptables', '-I', 'INPUT', '-p', 'tcp', '--dport', rfw_port, '-s', ip, '-j', 'ACCEPT'])
-        cmdexe.call(['iptables', '-I', 'OUTPUT', '-p', 'tcp', '--sport', rfw_port, '-d', ip, '-j', 'ACCEPT'])
+        Iptables.exe(['-I', 'INPUT', '-p', 'tcp', '--dport', rfw_port, '-s', ip, '-j', 'ACCEPT'])
+        Iptables.exe(['-I', 'OUTPUT', '-p', 'tcp', '--sport', rfw_port, '-d', ip, '-j', 'ACCEPT'])
 
 
 def main():
@@ -206,7 +184,9 @@ def main():
         create_args_parser().print_usage()
         sys.exit(1)
 
-    startup_sanity_check(rfwconf)
+    # Initialize Iptables with configured path to system iptables 
+    Iptables.ipt_path = rfwconf.iptables_path()
+    startup_sanity_check()
 
     # Install signal handlers
     signal.signal(signal.SIGTERM, __sigTERMhandler)
