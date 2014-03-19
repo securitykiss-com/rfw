@@ -2,7 +2,6 @@ import socket, os, base64, logging
 from SocketServer import BaseServer, BaseRequestHandler
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 from SimpleHTTPServer import SimpleHTTPRequestHandler
-# use embedded ssl library. Don't use OpenSSL library - it has multiple issues
 import ssl
 
 # Follow the logging convention:

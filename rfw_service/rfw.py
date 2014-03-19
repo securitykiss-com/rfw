@@ -17,7 +17,14 @@ def create_requesthandler(rfwconf, cmd_queue, expiry_queue):
     """Create RequestHandler type. This is a way to avoid global variables: a closure returning a class type that binds rfwconf and cmd_queue inside. 
     """
     class RequestHandler(BasicAuthRequestHandler):
-    
+        
+        # override to include access logs in main log file
+        def log_message(self, format, *args):
+            log.info("%s - - [%s] %s" %
+                         (self.client_address[0],
+                          self.log_date_time_string(),
+                          format%args))
+
         def creds_check(self, user, password):
             return user == rfwconf.auth_username() and password == rfwconf.auth_password()
     
@@ -51,15 +58,17 @@ def create_requesthandler(rfwconf, cmd_queue, expiry_queue):
                     self.check_whitelist_conflict(rfwconf.whitelist(), rule.source)
                     self.check_whitelist_conflict(rfwconf.whitelist(), rule.destination)
                     ctup = (modify, rule, directives)
-                    log.debug('Final command tuple: {}'.format(str(ctup)))
+                    log.debug('PUT to Cmd Queue. Tuple: {}'.format(ctup))
                     cmd_queue.put_nowait(ctup)
                     return self.http_resp(200, ctup)
                 else:
                     raise Exception('Unrecognized action: {}'.format(action))
             except Exception, e:
-                #log.error(e.message, str(e))
-                log.exception('asdfasdfasdf')
-                return self.http_resp(400, e.message) # Bad Request
+                msg = 'add_command error: {}'.format(e.message)
+                # logging as error disabled - bad client request is not an error 
+                # log.exception(msg)
+                log.info(msg)
+                return self.http_resp(400, msg) # Bad Request
             
     
         def do_PUT(self):
@@ -86,6 +95,7 @@ def create_requesthandler(rfwconf, cmd_queue, expiry_queue):
 
 def create_args_parser():
     CONFIG_FILE = '/etc/rfw/rfw.conf'
+    # TODO change default log level to INFO
     LOG_LEVEL = 'DEBUG'
     LOG_FILE = '/var/log/rfw.log'
     parser = argparse.ArgumentParser(description='rfw - Remote Firewall')
