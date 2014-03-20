@@ -92,9 +92,12 @@ def build_rule(p):
     if len(p) > 4:
         i = 4
         # optionally the netmask like: /drop/input/eth0/1.2.3.4/24
-        if iputil.validate_mask_limit(p[i]):
-            mask1 = p[i]
-            i = i + 1
+        if p[i].isdigit():
+            if iputil.validate_mask_limit(p[i]):
+                mask1 = p[i]
+                i = i + 1
+            else:
+                raise ValueError('Netmask must be in range from 9 to 32')
         if len(p) > i:
             # iface2 for forward chain /drop/forward/eth0/1.2.3.4/eth1
             iface2 = p[i]
@@ -150,6 +153,7 @@ def build_rule(p):
         else:
             out = '*'
         source = ip1
+        print('mask1: '.format(mask1))
         if mask1:
             source = '{}/{}'.format(ip1, mask1)
         destination = '0.0.0.0/0'

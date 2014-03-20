@@ -15,15 +15,15 @@ Typical use cases
 Features
 --------
 
-- block/allow individual IP addresses on iptables on request from remote host
-- apply action against individual IP permanently or with expiry periods
-- keep IP whitelist - commands related to whitelisted IPs are ignored what prevents locking out the legitmate clients
-- handle CIDR notation in the whitelist config file
+- block/allow IP addresses with iptables on request from remote host
+- handle individual IP or CIDR ranges (ad.dr.es.s/mask)
+- apply action permanently or with expiry periods
+- keep IP/range whitelist - actions related to whitelisted IPs are ignored what prevents locking out the legitmate clients
 - serialize requests to prevent concurrency issues with iptables
 - REST API
 - secured with SSL
 - authenticated with basic authentication over SSL and by client source IP
-- idempotent - duplicate entries are ignored
+- idempotent - actions resulting in duplicate entries are ignored
 - do not interfere with more general iptables rules
 - both remote and local interface: SSL secured that can listen on any available network interface and plain HTTP that can listen only on localhost
 - local client (rfwc) with syntax identical to iptables which acts as the iptables guard
@@ -31,7 +31,7 @@ Features
 FAQ
 ---
 
-**Q: Why not use chef/puppet/ansible/salt/fabric/ssh instead?**
+**Q: Why not use chef/puppet/ansible/salt/fabric/ssh for remote management instead?**
 
 | For a couple of reasons:
 - Security, trust and permission management. The above tools require giving a remote client the ssh root acces. Often we want to allow the IP analytics server to be able to block selected IPs without giving admin rights. 

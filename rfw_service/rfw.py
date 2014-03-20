@@ -47,7 +47,9 @@ def create_requesthandler(rfwconf, cmd_queue, expiry_queue):
             # modify should be 'D' for Delete or 'I' for Insert understood as -D and -I iptables flags
             assert modify == 'D' or modify == 'I'
             log.debug('self.path: {}'.format(self.path))
-           
+            
+            # TODO authenticate by IP - verify client IP is in whitelist as an additional measure
+ 
             try:
                 action, rule, directives = cmdparse.parse_command(self.path)
                 log.debug('\nAction: {}\nRule: {}\nDirectives: {}'.format(action, rule, directives))

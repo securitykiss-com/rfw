@@ -31,6 +31,10 @@ class IpUtilTest(TestCase):
         self.assertEqual(iputil.cidr2range('1.2.3.4/0'), (0, 4294967295))
         self.assertEqual(iputil.cidr2range('129.2.3.129/28'), (2164392832, 2164392847))
 
+    def test_ip_in_list(self):
+        self.assertEqual(iputil.ip_in_list('1.2.0.0/16', ['1.2.3.4']), True)
+
+
 
 #TODO extract reusable libraries along with testcases
 class TimeUtilTest(TestCase):

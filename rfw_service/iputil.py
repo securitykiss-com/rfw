@@ -145,7 +145,7 @@ def validate_mask(mask):
 
 def validate_mask_limit(mask):
     mask = validate_mask(mask)
-    if mask and int(mask) >= 24:
+    if mask and int(mask) > 8:
         return mask
     else:
         return False
