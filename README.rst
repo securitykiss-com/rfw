@@ -2,7 +2,8 @@ rfw - remote firewall
 =====================
 
 | Remote firewall as a web service.
-| rfw is the RESTful server which applies iptables rules for individual IP addresses on request from a remote client.
+| 
+| rfw is the RESTful server which applies iptables rules to block or allow IP addresses on request from a remote client.
 | rfw maintains the list of blocked IP addresses which may be updated in real time from many sources. rfw also solves the problem of concurrent modifications to iptables since the requests are serialized.
 
 Typical use cases
@@ -16,7 +17,7 @@ Features
 --------
 
 - block/allow IP addresses with iptables on request from remote host
-- handle individual IP or CIDR ranges (ad.dr.es.s/mask)
+- handle individual IP or CIDR ranges (xx.xx.xx.xx/mask)
 - apply action permanently or with expiry periods
 - keep IP/range whitelist - actions related to whitelisted IPs are ignored what prevents locking out the legitmate clients
 - serialize requests to prevent concurrency issues with iptables
@@ -25,8 +26,6 @@ Features
 - authenticated with basic authentication over SSL and by client source IP
 - idempotent - actions resulting in duplicate entries are ignored
 - do not interfere with more general iptables rules
-- both remote and local interface: SSL secured that can listen on any available network interface and plain HTTP that can listen only on localhost
-- local client (rfwc) with syntax identical to iptables which acts as the iptables guard
 
 FAQ
 ---
@@ -94,6 +93,17 @@ expire parameter is valid only for PUT requests
 
 Examples:
 ---------
+
++================================================+=========================================================================================+
+| rfw REST API | iptables command |
++------------------------------------------------+-----------------------------------------------------------------------------------------+
+| PUT /drop/input/eth0/11.22.33.44 | iptables -I INPUT -i eth0 -s 11.22.33.44 -j DROP |
++------------------------------------------------+-----------------------------------------------------------------------------------------+
+| DELETE /drop/input/eth0/11.22.33.44 | iptables -D INPUT -i eth0 -s 11.22.33.44 -j DROP |
++------------------------------------------------+-----------------------------------------------------------------------------------------+
+
+
+
 
 +-------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | rfw REST API                                    | iptables command                                                                                                                                                         |

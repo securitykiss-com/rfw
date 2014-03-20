@@ -1,7 +1,9 @@
 
 TODO
 ---------------------------------
-- Ruleset order: blocked ips DROP, ACCEPT ignored IPs [on rfw port], all IPs on rfw port DROP, the rest. Rule order: 
+- both remote and local interface: SSL secured that can listen on any available network interface and plain HTTP that can listen only on localhost
+- local client (rfwc) with syntax identical to iptables which acts as the iptables guard
+
 - Describe the above in docs: "To prevent nasty surprises we explain here how rfw interacts with iptables. The impact is as minimal as possible. At start rfw inserts the following rules:
     - on INPUT/OUTPUT insert block all IPs to/from the tcp rfw port
     - on INPUT/OUTPUT insert allow white.list IPs to/from tcp rfw port
@@ -28,7 +30,6 @@ TODO
         - as rfwc without command line options but reading scripts from standard input - asynchronous
         - as above but with -b batch_file.sh option instead of standard input - asynchronous
         - if you want the 2 above make synchronous i.e. to wait for the rfw to finish processing iptables commands, simply call rfwc again with --wait flag. There should be a special call to rfw that does not return response until the queue is empty.
-- The default use case should be DROP individual IP on INPUT chain. Make the action (DROP/ACCEPT) configurable. It may be useful for FORWARD chain.
 - expand documentation, more use cases
 - run as daemon (check fail2ban code), add --non-daemon option at rfw startup
 - create symlink in bin folder by setup.py
@@ -41,17 +42,12 @@ TODO
 - consider adding option for narrowing down the scope of block/allow IP command with port range. It should be optional in query params: ?port_start=1&port_end=1023  It may be useful for blocking 
 low port scanning by ShieldsUp like services, while not blocking the website itself - however it should work anyway without IP range because port scanning hits the INPUT chain while website browsing hits FORWARD chain (after SNAT).
 - how about symmetric rules? When blocking IP on INPUT we also want to block on OUTPUT chain. Add /io/ chain? Apply connection tracking? Better no. Additional dependency on ip_conntrack module.
-- consider allowing/blocking not only individual IPs but IP ranges - redesign REST API?
 - consider enhanced REST API (+target, +ranges, +flags) :
 /drop/input/eth0/1.2.3.4/32/?expire=120
 /accept/io/any/3.3.3.3/24/?established_only=true
 /reject/input/any/4.4.4.4/
 DELETE /drop/input/eth0/1.2.3.4/16  - should it delete existing more specific rules? KIS: No, simply report no such rule
 established_only and other possible flags should be implemented as plugins OR make it more generic: flags SYN, RST, ACK in query parameters
-Having drop and accept in url satisfies some interesting use cases but complicates things: 
-    - drop and accept identical rule, insert and delete - however it should not be a problem
-Having ranges complicates:
-    - what if the range contains whitelisted IP or overlap with whitelisted IP range? KIS: Report error to the client.
 - note that unfirewalled, closed ports respond with RST ACK on SYN
 - warn in docs that rfw is applying INSERTs and not APPENDs - this order is more convenient for going from general rules to more specific. The new overlapping rule supersedes the old one. 
 - consider scenario:
