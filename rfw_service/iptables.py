@@ -220,14 +220,3 @@ class Iptables:
         return ret
 
 
-
-if __name__ == '__main__':
-    ipt = Iptables.load()
-    print(ipt.rules[0])
-    found = ipt.find({'chain': 'INPUT'})
-    print
-    print(found)
-    print
-    print(ipt.rules)
-
-

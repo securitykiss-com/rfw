@@ -3,7 +3,7 @@ rfw - remote firewall
 
 Remote firewall as a web service.
  
-rfw is the RESTful server which applies iptables rules to block or allow IP addresses on request from a remote client. rfw maintains the list of blocked IP addresses which may be updated in real time from many sources. It also solves the problem of concurrent modifications to iptables since the requests are serialized.
+``rfw`` is the RESTful server which applies iptables rules to block or allow IP addresses on request from a remote client. ``rfw`` maintains the list of blocked IP addresses which may be updated in real time from many sources. ``rfw`` also solves the problem of concurrent modifications to iptables since the requests are serialized.
 
 Typical use cases
 -----------------
@@ -70,11 +70,11 @@ See `rfwgen README <config/deploy/README.rst>`__ for more details.
 
 Testing with curl::
 
-    curl -v --cacert config/deploy/client/ca.crt --user myuser:mypasswd https://11.11.11.11:7393/input/eth0/1.2.3.4
+    curl -v --cacert config/deploy/client/ca.crt --user myuser:mypasswd https://<server_ip>:7393/drop/input/eth0/1.2.3.4
 
 or when testing on localhost you can skip certificate verification::
 
-    curl -v --insecure --user myuser:mypasswd https://127.0.0.1:8443/input/eth0/1.2.3.4
+    curl -v --insecure --user myuser:mypasswd https://127.0.0.1:8443/drop/input/eth0/1.2.3.4
 
 Run rfw without installing
 --------------------------
@@ -102,11 +102,9 @@ Note that when the rules come from variuos sources they may interact badly. For 
 
 rfw is intended for hosts with static IP addresses. It includes both servers and clients. For clients it is not as strong requirement as it seems since in typical rfw deployment the client is a data center collocated machine with static IP. If you really need to use REST client from various locations or from dynamic IP, you have a couple of options:
 
--  If you have any server with static IP with SSH access use it as a
-   gateway client to rfw.
--  If you have dynamic IP from particular address pool assigned to your
-   Internet Service Provider you may whitelist the entire address range.
--  You can connect through VPN with static IP.
+-  If you have any server with static IP with SSH access use it as a gateway client to rfw.
+-  If you have dynamic IP from particular address pool assigned to your Internet Service Provider you may whitelist the entire address range.
+-  You can connect through VPN with static IP and whitelist that IP.
 
 **Q: Is it secure?**
 
@@ -120,10 +118,7 @@ Security of rfw was the primary concern from the very beginning and influenced t
 - no external dependencies except iptables 
 - limited functionality 
 - no generic rules 
-- not performance-optimal but conservative choice of time-proven crypto: 2048-bit RSA based SSL with HTTP Basic Authentication. TODO: Consider ECDSA and check HTTPS clients
-compatibility
-
-
+- not performance-optimal but conservative choice of time-proven crypto: 2048-bit RSA based SSL with HTTP Basic Authentication
 
 
 License

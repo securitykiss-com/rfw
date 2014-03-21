@@ -47,8 +47,13 @@ def create_requesthandler(rfwconf, cmd_queue, expiry_queue):
             # modify should be 'D' for Delete or 'I' for Insert understood as -D and -I iptables flags
             assert modify == 'D' or modify == 'I'
             log.debug('self.path: {}'.format(self.path))
+            whitelist = rfwconf.whitelist()
             
-            # TODO authenticate by IP - verify client IP is in whitelist as an additional measure
+            # authenticate by checking if client IP is in the whitelist - normally reqests from non-whitelisted IPs should be blocked by firewall before
+            client_ip = self.client_address[0]
+            if not iputil.ip_in_list(client_ip, whitelist):
+                log.error('Request from client IP: {} which is not authorized in the whitelist. It should have been blocked by firewall.'.format(client_ip))
+                return self.http_resp(403, '') # Forbidden 
  
             try:
                 action, rule, directives = cmdparse.parse_command(self.path)
@@ -57,8 +62,8 @@ def create_requesthandler(rfwconf, cmd_queue, expiry_queue):
                     pass
                 elif action.upper() in iptables.RULE_TARGETS:
                     # eliminate ignored/whitelisted IP related commands early to prevent propagating them to expiry queue
-                    self.check_whitelist_conflict(rfwconf.whitelist(), rule.source)
-                    self.check_whitelist_conflict(rfwconf.whitelist(), rule.destination)
+                    self.check_whitelist_conflict(whitelist, rule.source)
+                    self.check_whitelist_conflict(whitelist, rule.destination)
                     ctup = (modify, rule, directives)
                     log.debug('PUT to Cmd Queue. Tuple: {}'.format(ctup))
                     cmd_queue.put_nowait(ctup)
@@ -136,20 +141,20 @@ def stop():
     sys.exit(1)
 
 
-# Delete and insert again the rfw init rules
-# The rules block all INPUT/OUTPUT traffic on rfw ssl port except whitelisted IPs
 def rfw_init_rules(rfwconf):
-    # here are the rules that should be created in the Iptables format:
-#{'opt': '--', 'destination': '0.0.0.0/0', 'target': 'ACCEPT', 'chain': 'INPUT', 'extra': 'tcp dpt:7373', 'prot': 'tcp', 'bytes': '0', 'source': '1.2.3.4', 'num': '1', 'in': '*', 'pkts': '0', 'out': '*'}
-#{'opt': '--', 'destination': '0.0.0.0/0', 'target': 'DROP', 'chain': 'INPUT', 'extra': 'tcp dpt:7373', 'prot': 'tcp', 'bytes': '0', 'source': '0.0.0.0/0', 'num': '2', 'in': '*', 'pkts': '0', 'out': '*'}
-#{'opt': '--', 'destination': '1.2.3.4', 'target': 'ACCEPT', 'chain': 'OUTPUT', 'extra': 'tcp spt:7373', 'prot': 'tcp', 'bytes': '0', 'source': '0.0.0.0/0', 'num': '1', 'in': '*', 'pkts': '0', 'out': '*'}
-#{'opt': '--', 'destination': '0.0.0.0/0', 'target': 'DROP', 'chain': 'OUTPUT', 'extra': 'tcp spt:7373', 'prot': 'tcp', 'bytes': '0', 'source': '0.0.0.0/0', 'num': '2', 'in': '*', 'pkts': '0', 'out': '*'}
+    """Clean and insert the rfw init rules.
+    The rules block all INPUT/OUTPUT traffic on rfw ssl port except for whitelisted IPs.
+    Here are the rules that should be created assuming that that the only whitelisted IP is 127.0.0.1:
+        Rule(chain='INPUT', num='1', pkts='0', bytes='0', target='ACCEPT', prot='tcp', opt='--', inp='*', out='*', source='127.0.0.1', destination='0.0.0.0/0', extra='tcp dpt:7393')
+        Rule(chain='INPUT', num='4', pkts='0', bytes='0', target='DROP', prot='tcp', opt='--', inp='*', out='*', source='0.0.0.0/0', destination='0.0.0.0/0', extra='tcp dpt:7393')
+        Rule(chain='OUTPUT', num='1', pkts='0', bytes='0', target='ACCEPT', prot='tcp', opt='--', inp='*', out='*', source='0.0.0.0/0', destination='127.0.0.1', extra='tcp spt:7393')
+        Rule(chain='OUTPUT', num='4', pkts='0', bytes='0', target='DROP', prot='tcp', opt='--', inp='*', out='*', source='0.0.0.0/0', destination='0.0.0.0/0', extra='tcp spt:7393')
+    """
     rfw_port = rfwconf.outward_server_port()
     ipt = Iptables.load()
 
     ###
     log.info('Delete existing init rules')
-    # TODO possible improvement here: the rule below may be more specific: include rfwconf.outward_server_ip()    
     # find 'drop all packets to and from rfw port'
     drop_input = ipt.find({'target': ['DROP'], 'chain': ['INPUT'], 'prot': ['tcp'], 'extra': ['tcp dpt:' + rfw_port]})
     log.info(drop_input)
@@ -160,7 +165,6 @@ def rfw_init_rules(rfwconf):
     log.info('Existing drop output to rfw port {} rules:\n{}'.format(rfw_port, '\n'.join(map(str, drop_output))))
     for r in drop_output:
         Iptables.exe_rule('D', r)
-    
 
     ###
     log.info('Insert DROP rfw port init rules')
