@@ -30,21 +30,8 @@ class CommandProcessor(Thread):
             log.debug('PUT to Expiry Queue. expiry_queue: {}'.format(self.expiry_queue.queue))
 
 
-    def read_rfw_rules(self):
-        ipt = Iptables.load()
-        # rfw originated rules may have only DROP/ACCEPT/REJECT targets and do not specify protocol and do not have extra args like ports
-        input_rules = ipt.find({'target': iptables.RULE_TARGETS, 'chain': ['INPUT'], 'destination': ['0.0.0.0/0'], 'out': ['*'], 'prot': [''], 'extra': ['']})
-        output_rules = ipt.find({'target': iptables.RULE_TARGETS, 'chain': ['OUTPUT'], 'source': ['0.0.0.0/0'], 'inp': ['*'], 'prot': [''], 'extra': ['']})
-        forward_rules = ipt.find({'target': iptables.RULE_TARGETS, 'chain': ['FORWARD'], 'prot': [''], 'extra': ['']})
-        ruleset = set()
-        ruleset.update(input_rules)
-        ruleset.update(output_rules)
-        ruleset.update(forward_rules)
-        return ruleset
-
-
     def run(self):
-        ruleset = self.read_rfw_rules()
+        ruleset = set(Iptables.read_simple_rules())
         while True:
             modify, rule, directives = self.cmd_queue.get()
             try:

@@ -1,5 +1,5 @@
 from __future__ import print_function
-import argparse, logging, re, sys, struct, socket, subprocess, signal, time
+import argparse, logging, re, sys, struct, socket, subprocess, signal, time, json
 from Queue import Queue, PriorityQueue
 from threading import Thread
 import config, rfwconfig, cmdparse, iputil, rfwthreads, iptables
@@ -59,7 +59,12 @@ def create_requesthandler(rfwconf, cmd_queue, expiry_queue):
                 action, rule, directives = cmdparse.parse_command(self.path)
                 log.debug('\nAction: {}\nRule: {}\nDirectives: {}'.format(action, rule, directives))
                 if action == 'list':
-                    pass
+                    chain = rule
+                    rules = Iptables.read_simple_rules(chain)
+                    log.debug('List rfw rules: %s', rules) 
+                    list_of_dict = map(iptables.Rule._asdict, rules)                    
+                    resp = json.dumps(list_of_dict)
+                    return self.http_resp(200, resp)
                 elif action.upper() in iptables.RULE_TARGETS:
                     # eliminate ignored/whitelisted IP related commands early to prevent propagating them to expiry queue
                     self.check_whitelist_conflict(whitelist, rule.source)

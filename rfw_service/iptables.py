@@ -1,4 +1,4 @@
-import inspect, re, subprocess, logging
+import inspect, re, subprocess, logging, json
 from collections import namedtuple
 from threading import RLock
 
@@ -51,6 +51,8 @@ class Rule(RuleProto):
 
     def __ne__(self, other):
         return not self.__eq__(other)
+
+
 
 
 class Iptables:
@@ -197,7 +199,22 @@ class Iptables:
             log.error("Error code {} returned when called '{}'. Command output: '{}'".format(e.returncode, e.cmd, e.output))
             raise e
 
-
+    @staticmethod
+    def read_simple_rules(chain=None):
+        assert chain is None or chain in RULE_CHAINS
+        rules = []
+        ipt = Iptables.load()
+        # rfw originated rules may have only DROP/ACCEPT/REJECT targets and do not specify protocol and do not have extra args like ports
+        if chain == 'INPUT' or chain is None:
+            input_rules = ipt.find({'target': RULE_TARGETS, 'chain': ['INPUT'], 'destination': ['0.0.0.0/0'], 'out': ['*'], 'prot': ['all'], 'extra': ['']})
+            rules.extend(input_rules)
+        if chain == 'OUTPUT' or chain is None:
+            output_rules = ipt.find({'target': RULE_TARGETS, 'chain': ['OUTPUT'], 'source': ['0.0.0.0/0'], 'inp': ['*'], 'prot': ['all'], 'extra': ['']})
+            rules.extend(output_rules)
+        if chain == 'FORWARD' or chain is None:
+            forward_rules = ipt.find({'target': RULE_TARGETS, 'chain': ['FORWARD'], 'prot': ['all'], 'extra': ['']})
+            rules.extend(forward_rules)
+        return rules
 
     # find is a non-static method as it should be called after instantiation with Iptables.load()
     def find(self, query):

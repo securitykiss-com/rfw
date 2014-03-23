@@ -45,7 +45,7 @@ def parse_command_path(path):
 
     action = p[0]
 
-    # for path = '/'
+    # for path = '/' return empty tuple
     if action == '':
         if len(p) == 1:
             return tuple()
@@ -58,9 +58,17 @@ def parse_command_path(path):
         except ValueError, e:
             raise PathError(path, e.message)
     
-    if p[0] == 'list':
-        #TODO
-        return action, 'TODO' 
+    if action == 'list':
+        if len(p) == 1:
+            return action, None
+        elif len(p) == 2:
+            chain = p[1].upper()
+            if chain in iptables.RULE_CHAINS:
+                return action, chain
+            else:
+                raise PathError(path, 'Wrong chain name for list command')
+        else:
+            raise PathError(path, 'Too many details for the list command')
         
     raise PathError(path)
 

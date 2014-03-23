@@ -50,7 +50,7 @@ Examples:
 | PUT /accept/forward/ppp/1.2.3.0/24/eth0/5.5.5.5| Allow forwarding packets with source address in subnet 1.2.3.0/24                       |
 |                                                | and destination address 5.5.5.5 from any ppp interface to eth0. Translates to::         |
 |                                                |                                                                                         |
-|                                                |     iptables -I FORWARD -i ppp+ -o eth0 \\                                              |
+|                                                |     iptables -I FORWARD -i ppp+ -o eth0                                                 |
 |                                                |     -s 1.2.3.0/24 -d 5.5.5.5 -j ACCEPT                                                  |
 +------------------------------------------------+-----------------------------------------------------------------------------------------+
 |                                                | Block incoming packets from 11.22.33.44 on any interface for 10 minutes::               |
