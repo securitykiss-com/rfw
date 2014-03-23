@@ -1,5 +1,5 @@
 from __future__ import print_function
-import argparse, logging, re, sys, struct, socket, subprocess, signal, time, json
+import argparse, logging, re, sys, struct, socket, subprocess, signal, time, json, os
 from Queue import Queue, PriorityQueue
 from threading import Thread
 import config, rfwconfig, cmdparse, iputil, rfwthreads, iptables
@@ -16,6 +16,16 @@ def perr(msg):
 def create_requesthandler(rfwconf, cmd_queue, expiry_queue):
     """Create RequestHandler type. This is a way to avoid global variables: a closure returning a class type that binds rfwconf and cmd_queue inside. 
     """
+
+    ver = '0.0.0'
+    try:
+        with open(os.path.join(os.path.dirname(__file__), 'VERSION')) as f:
+            ver = f.read().strip()
+    except IOError, e:
+        log.error('Could not read VERSION: {} {}'.format(e.strerror, e.filename))
+    server_ver = 'SecurityKISS rfw/{}'.format(ver)
+
+
     class RequestHandler(BasicAuthRequestHandler):
         
         # override to include access logs in main log file
@@ -24,6 +34,9 @@ def create_requesthandler(rfwconf, cmd_queue, expiry_queue):
                          (self.client_address[0],
                           self.log_date_time_string(),
                           format%args))
+
+        def version_string(self):
+            return server_ver
 
         def creds_check(self, user, password):
             return user == rfwconf.auth_username() and password == rfwconf.auth_password()

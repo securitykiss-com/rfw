@@ -34,9 +34,15 @@ def read(*filenames, **kwargs):
 
 
 
+version = 0.0.0
+with open(os.path.join(os.path.dirname(__file__), 'rfw_service/VERSION')) as f:
+    version = f.read().strip()
+
+
+
 setup(
     name = "rfw",
-    version = "0.0.1",
+    version = version,
     author = "SecurityKISS Ltd",
     author_email = "open.source@securitykiss.com",
     description = ("Remote firewall as a web service. REST API for iptables."),
