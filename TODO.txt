@@ -6,13 +6,14 @@ TODO
 - both remote and local interface: SSL secured that can listen on any available network interface and plain HTTP that can listen only on localhost
 - local client (rfwc) with syntax identical to iptables which acts as the iptables guard
 
+- consider user/passwd for localhost server
+
 - Describe the above in docs: "To prevent nasty surprises we explain here how rfw interacts with iptables. The impact is as minimal as possible. At start rfw inserts the following rules:
     - on INPUT/OUTPUT insert block all IPs to/from the tcp rfw port
     - on INPUT/OUTPUT insert allow white.list IPs to/from tcp rfw port
     - use iptables state module to accept/block ESTABLISHED connections
     - iptables - why use connection tracking?
 
-- add HTTP server for localhost
 - review README
 - tidy up REST verb functions on sslserver, add the bulk update role for POST
 - use PUT and DELETE - should be idempotent. Give the option on non-restful requests with GET and additional ?verb=PUT/DELETE param in query

@@ -3,4 +3,4 @@ include bin/*
 include config/*
 include config/deploy/*
 recursive-include docs *.txt
-recursive-exclude rfw_service *~
+recursive-exclude rfw *~
