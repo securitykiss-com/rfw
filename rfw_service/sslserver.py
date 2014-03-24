@@ -11,6 +11,14 @@ log = logging.getLogger('lib.{}'.format(__name__))
 log.addHandler(logging.NullHandler())
 
 
+class PlainServer(HTTPServer):
+    def __init__(self, server_address, HandlerClass):
+        BaseServer.__init__(self, server_address, HandlerClass)
+        self.socket = socket.socket(self.address_family,self.socket_type)
+        self.server_bind()
+        self.server_activate()
+
+
 class SSLServer(HTTPServer):
     def __init__(self, server_address, HandlerClass, certfile, keyfile):
         if not os.path.isfile(certfile):
@@ -27,9 +35,25 @@ class SSLServer(HTTPServer):
         self.server_activate()
 
 
+class CommonRequestHandler(BaseHTTPRequestHandler):
+
+    # override to include access logs in main log file
+    def log_message(self, format, *args):
+        log.info("%s - - [%s] %s" %
+                     (self.client_address[0],
+                      self.log_date_time_string(),
+                      format%args))
 
 
-class BasicAuthRequestHandler(BaseHTTPRequestHandler):
+    def http_resp(self, code, content):
+        content = str(content)
+        self.send_response(code)
+        self.send_header("Content-Length", len(content) + 2)
+        self.end_headers()
+        self.wfile.write(content + "\r\n")
+        return
+
+class BasicAuthRequestHandler(CommonRequestHandler):
     """HTTP request handler with Basic Authentication. It automatically sends back HTTP response code 401 if no valid Autorization header present in the request."""
 
     # To be overridden with actual credentials check

@@ -3,7 +3,7 @@ import argparse, logging, re, sys, struct, socket, subprocess, signal, time, jso
 from Queue import Queue, PriorityQueue
 from threading import Thread
 import config, rfwconfig, cmdparse, iputil, rfwthreads, iptables
-from sslserver import SSLServer, BasicAuthRequestHandler
+from sslserver import SSLServer, PlainServer, BasicAuthRequestHandler, CommonRequestHandler
 from iptables import Iptables
 
    
@@ -13,7 +13,7 @@ def perr(msg):
     print(msg, file=sys.stderr)
 
 
-def create_requesthandler(rfwconf, cmd_queue, expiry_queue):
+def create_requesthandlers(rfwconf, cmd_queue, expiry_queue):
     """Create RequestHandler type. This is a way to avoid global variables: a closure returning a class type that binds rfwconf and cmd_queue inside. 
     """
 
@@ -26,81 +26,63 @@ def create_requesthandler(rfwconf, cmd_queue, expiry_queue):
     server_ver = 'SecurityKISS rfw/{}'.format(ver)
 
 
-    class RequestHandler(BasicAuthRequestHandler):
-        
-        # override to include access logs in main log file
-        def log_message(self, format, *args):
-            log.info("%s - - [%s] %s" %
-                         (self.client_address[0],
-                          self.log_date_time_string(),
-                          format%args))
+    def check_whitelist_conflict(ip, whitelist):
+        if ip != '0.0.0.0/0' and iputil.ip_in_list(ip, whitelist):
+            msg = 'Ignoring the request conflicting with the whitelist'
+            log.warn(msg)
+            raise Exception(msg)
 
+
+    def process(handler, modify, urlpath):
+        # modify should be 'D' for Delete or 'I' for Insert understood as -D and -I iptables flags
+        assert modify == 'D' or modify == 'I'
+        log.debug('process {} urlpath: {}'.format(modify, urlpath))
+        
+        try:
+            action, rule, directives = cmdparse.parse_command(urlpath)
+            log.debug('\nAction: {}\nRule: {}\nDirectives: {}'.format(action, rule, directives))
+            if action == 'list':
+                chain = rule
+                rules = Iptables.read_simple_rules(chain)
+                log.debug('List rfw rules: %s', rules) 
+                list_of_dict = map(iptables.Rule._asdict, rules)                    
+                resp = json.dumps(list_of_dict)
+                return handler.http_resp(200, resp)
+            elif action.upper() in iptables.RULE_TARGETS:
+                # eliminate ignored/whitelisted IP related commands early to prevent propagating them to expiry queue
+                check_whitelist_conflict(rule.source, rfwconf.whitelist())
+                check_whitelist_conflict(rule.destination, rfwconf.whitelist())
+                ctup = (modify, rule, directives)
+                log.debug('PUT to Cmd Queue. Tuple: {}'.format(ctup))
+                cmd_queue.put_nowait(ctup)
+                return handler.http_resp(200, ctup)
+            else:
+                raise Exception('Unrecognized action: {}'.format(action))
+        except Exception, e:
+            msg = 'add_command error: {}'.format(e.message)
+            # logging as error disabled - bad client request is not an error 
+            # log.exception(msg)
+            log.info(msg)
+            return handler.http_resp(400, msg) # Bad Request
+            
+
+
+    class LocalRequestHandler(CommonRequestHandler):
+        
         def version_string(self):
             return server_ver
 
-        def creds_check(self, user, password):
-            return user == rfwconf.auth_username() and password == rfwconf.auth_password()
-    
-        def http_resp(self, code, content):
-            content = str(content)
-            self.send_response(code)
-            self.send_header("Content-Length", len(content) + 2)
-            self.end_headers()
-            self.wfile.write(content + "\r\n")
-            return
+        def go(self, modify, urlpath, remote_addr):
+            process(self, modify, urlpath)
 
-        def check_whitelist_conflict(self, whitelist, ip):
-            if ip != '0.0.0.0/0' and iputil.ip_in_list(ip, whitelist):
-                msg = 'Ignoring the request conflicting with the whitelist'
-                log.warn(msg)
-                raise Exception(msg)
-
-
-        def add_command(self, modify):
-            # modify should be 'D' for Delete or 'I' for Insert understood as -D and -I iptables flags
-            assert modify == 'D' or modify == 'I'
-            log.debug('self.path: {}'.format(self.path))
-            whitelist = rfwconf.whitelist()
-            
-            # authenticate by checking if client IP is in the whitelist - normally reqests from non-whitelisted IPs should be blocked by firewall before
-            client_ip = self.client_address[0]
-            if not iputil.ip_in_list(client_ip, whitelist):
-                log.error('Request from client IP: {} which is not authorized in the whitelist. It should have been blocked by firewall.'.format(client_ip))
-                return self.http_resp(403, '') # Forbidden 
- 
-            try:
-                action, rule, directives = cmdparse.parse_command(self.path)
-                log.debug('\nAction: {}\nRule: {}\nDirectives: {}'.format(action, rule, directives))
-                if action == 'list':
-                    chain = rule
-                    rules = Iptables.read_simple_rules(chain)
-                    log.debug('List rfw rules: %s', rules) 
-                    list_of_dict = map(iptables.Rule._asdict, rules)                    
-                    resp = json.dumps(list_of_dict)
-                    return self.http_resp(200, resp)
-                elif action.upper() in iptables.RULE_TARGETS:
-                    # eliminate ignored/whitelisted IP related commands early to prevent propagating them to expiry queue
-                    self.check_whitelist_conflict(whitelist, rule.source)
-                    self.check_whitelist_conflict(whitelist, rule.destination)
-                    ctup = (modify, rule, directives)
-                    log.debug('PUT to Cmd Queue. Tuple: {}'.format(ctup))
-                    cmd_queue.put_nowait(ctup)
-                    return self.http_resp(200, ctup)
-                else:
-                    raise Exception('Unrecognized action: {}'.format(action))
-            except Exception, e:
-                msg = 'add_command error: {}'.format(e.message)
-                # logging as error disabled - bad client request is not an error 
-                # log.exception(msg)
-                log.info(msg)
-                return self.http_resp(400, msg) # Bad Request
-            
+        def do_modify(self, modify):
+            self.go(modify, self.path, self.client_address[0])
     
         def do_PUT(self):
-            self.add_command('I')
+            self.do_modify('I')
     
         def do_DELETE(self):
-            self.add_command('D')
+            self.do_modify('D')
     
         def do_GET(self):
             if rfwconf.is_non_restful(): 
@@ -110,9 +92,49 @@ def create_requesthandler(rfwconf, cmd_queue, expiry_queue):
                 self.send_response(405) # Method Not Allowed
     
         def do_POST(self):
-            self.add_command('I')
+            self.do_modify('I')
 
-    return RequestHandler
+
+
+    class OutwardRequestHandler(BasicAuthRequestHandler):
+        
+        def version_string(self):
+            return server_ver
+
+        def creds_check(self, user, password):
+            return user == rfwconf.auth_username() and password == rfwconf.auth_password()
+    
+
+        def go(self, modify, urlpath, remote_addr):
+            
+            # authenticate by checking if client IP is in the whitelist - normally reqests from non-whitelisted IPs should be blocked by firewall beforehand
+            if not iputil.ip_in_list(remote_addr, rfwconf.whitelist()):
+                log.error('Request from client IP: {} which is not authorized in the whitelist. It should have been blocked by firewall.'.format(remote_addr))
+                return self.http_resp(403, '') # Forbidden 
+
+            process(self, modify, urlpath)
+
+          
+        def do_modify(self, modify):
+            self.go(modify, self.path, self.client_address[0])
+    
+        def do_PUT(self):
+            self.do_modify('I')
+    
+        def do_DELETE(self):
+            self.do_modify('D')
+    
+        def do_GET(self):
+            if rfwconf.is_non_restful(): 
+                #TODO here it will be more complicated. The GET requests are valid in restful scenario for listing rfw status
+                self.do_POST()
+            else:
+                self.send_response(405) # Method Not Allowed
+    
+        def do_POST(self):
+            self.do_modify('I')
+
+    return LocalRequestHandler, OutwardRequestHandler
 
 
 
@@ -245,27 +267,35 @@ def main():
     cmd_queue = Queue()
 
     rfwthreads.CommandProcessor(cmd_queue, 
-                                rfwconf.whitelist(),
-                                expiry_queue,
-                                rfwconf.default_expire()).start()
+                            rfwconf.whitelist(),
+                            expiry_queue,
+                            rfwconf.default_expire()).start()
 
     rfwthreads.ExpiryManager(cmd_queue, expiry_queue).start()
 
     # Passing HandlerClass to SSLServer is very limiting, seems like a bad design of BaseServer. 
     # In order to pass extra info to RequestHandler without using global variable we have to wrap the class in closure.
-    HandlerClass = create_requesthandler(rfwconf, cmd_queue, expiry_queue)
+    LocalHandlerClass, OutwardHandlerClass = create_requesthandlers(rfwconf, cmd_queue, expiry_queue)
     if rfwconf.is_outward_server():
         server_address = (rfwconf.outward_server_ip(), int(rfwconf.outward_server_port()))
         httpd = SSLServer(
                     server_address, 
-                    HandlerClass, 
+                    OutwardHandlerClass, 
                     rfwconf.outward_server_certfile(), 
                     rfwconf.outward_server_keyfile())
-        sa = httpd.socket.getsockname()
-        log.info("Serving HTTPS on {} port {}".format(sa[0], sa[1]))
-        httpd.serve_forever()
+        rfwthreads.ServerRunner(httpd).start()
 
-    assert False, "There should be at least one non-daemon"
+    if rfwconf.is_local_server():
+        server_address = ('127.0.0.1', int(rfwconf.local_server_port()))
+        httpd = PlainServer(
+                    server_address, 
+                    LocalHandlerClass)
+        rfwthreads.ServerRunner(httpd).start()
+
+    # wait forever
+    time.sleep(1e9)
+
+
 
 if __name__ == "__main__":
     main()

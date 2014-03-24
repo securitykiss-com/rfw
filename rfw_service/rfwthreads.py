@@ -112,6 +112,19 @@ class ExpiryManager(Thread):
 
 
             
+class ServerRunner(Thread):
+
+    def __init__(self, httpd):
+        Thread.__init__(self)
+        self.httpd = httpd
+        self.setDaemon(True)
+
+    def run(self):
+        sa = self.httpd.socket.getsockname()
+        log.info("Serving HTTP on {} port {}".format(sa[0], sa[1]))
+        self.httpd.serve_forever()
+        
+
 
 
 
