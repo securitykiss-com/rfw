@@ -61,7 +61,8 @@ Examples:
 
 Deployment
 ----------
-1. Install from PyPI::
+
+Install from PyPI::
 
     pip install rfw
 
@@ -72,20 +73,21 @@ or from tarball::
     ./setup.py install
 
 
-1. Generate keys and certificates with config/deploy/rfwgen::
+Generate keys and certificates with config/deploy/rfwgen::
 
     ./rfwgen <server_ip>
 
 See `rfwgen README <config/deploy/README.rst>`__ for more details.
 
-1. Fill blanks in configuration file /etc/rfw/rfw.conf
+
+Fill blanks in configuration file /etc/rfw/rfw.conf
 
 
-1. Run in verbose mode with default config file::
+Run in verbose mode with default config file::
 
     rfw -v
 
-1. Test with curl::
+Test with curl::
 
     curl -v --cacert config/deploy/client/ca.crt --user myuser:mypasswd https://<server_ip>:7393/drop/input/eth0/1.2.3.4
 
