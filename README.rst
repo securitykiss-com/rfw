@@ -80,7 +80,7 @@ Generate keys and certificates with config/deploy/rfwgen::
 See `rfwgen README <config/deploy/README.rst>`__ for more details.
 
 
-Fill blanks in configuration file /etc/rfw/rfw.conf
+Fill blanks in configuration file /etc/rfw/rfw.conf and /etc/rfw/white.list.
 
 
 Run in verbose mode with default config file::
@@ -111,11 +111,11 @@ FAQ
 | For a couple of reasons:
 - Security, trust and permission management. The above tools require giving a remote client the ssh root acces. Often we want to allow the IP analytics server to be able to block selected IPs without giving admin rights. 
 - Performance 
-- handle frequent and concurrent requests 
-- No dependencies and easy to talk to from any platform and language. RESTful - lingua franca of the Internet 
+- Handle frequent and concurrent requests 
+- No dependencies and easy to talk to from any platform and language via REST API
 - Protection against locking yourself out by applying wrong rule
 
-Note that when the rules come from variuos sources they may interact badly. For firewalls the order of rules matters. That's why the functionality of remote rfw is limited to blocking individual IPs inserted in front of the ruleset. Be careful when using local rfwc where you have the full power of iptables at hand.
+Note that when the rules come from variuos sources they may interact badly. For firewalls the order of rules matters. That's why the functionality of remote rfw is limited to blocking individual IPs inserted in front of the ruleset. 
 
 **Q: rfw limits REST client access by IP whitelisting. What if I need to connect from dynamic IP?**
 
@@ -127,9 +127,11 @@ rfw is intended for hosts with static IP addresses. It includes both servers and
 
 **Q: Is it secure?**
 
-Tampering with the core firewall should never be taken lightly. rfw must be run with root privileges in order to modify iptables so it requires a lot of trust in the software. There is a trade-off Sometimes there is no choice and you have to automate firewall actions across individual boxes anyway. Then rfw makes it more secure because the remote client does not need the full access to the host and can only block/allow individual IP addresses using rfw API. While rfw is designed with distributed system in mind, it may also improve security even for a single box by: - limiting iptables functionality to operate only on individual IP addresses - whitelisting selected IP addresses to prevent lock out - serializing iptables modifications
+Tampering with the core firewall should never be taken lightly. rfw must be run with root privileges in order to modify iptables so it requires a lot of trust in the software. Sometimes there is no choice and you have to automate firewall actions across individual boxes anyway. Then rfw makes it more secure because the remote client does not need to have full access to the host and can only block/allow IP addresses using rfw API. While rfw is designed with distributed system in mind, it may also improve security even for a single box by: 
 
-it provides advantage over changing iptables manually.
+- limiting iptables functionality to apply only simple rules
+- whitelisting selected IP addresses to prevent lock out 
+- serializing iptables modifications
 
 Security of rfw was the primary concern from the very beginning and influenced these design decisions: 
 - simplicity 

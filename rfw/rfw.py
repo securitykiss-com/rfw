@@ -249,6 +249,11 @@ def rfw_init_rules(rfwconf):
     ###
     log.info('Insert ACCEPT whitelist IP rfw port init rules')
     for ip in rfwconf.whitelist():
+        try:
+            Iptables.exe(['-D', 'INPUT', '-p', 'tcp', '--dport', rfw_port, '-s', ip, '-j', 'ACCEPT'])
+            Iptables.exe(['-D', 'OUTPUT', '-p', 'tcp', '--sport', rfw_port, '-d', ip, '-j', 'ACCEPT'])
+        except subprocess.CalledProcessError, e:
+            pass  # ignore
         Iptables.exe(['-I', 'INPUT', '-p', 'tcp', '--dport', rfw_port, '-s', ip, '-j', 'ACCEPT'])
         Iptables.exe(['-I', 'OUTPUT', '-p', 'tcp', '--sport', rfw_port, '-d', ip, '-j', 'ACCEPT'])
 

@@ -8,6 +8,8 @@ TODO
 
 - consider user/passwd for localhost server
 
+- rfwc comment: "Note that when the rules come from variuos sources they may interact badly. For firewalls the order of rules matters. That's why the functionality of remote rfw is limited to blocking individual IPs inserted in front of the ruleset. Be careful when using local rfwc where you have the full power of iptables at hand."
+
 - Describe the above in docs: "To prevent nasty surprises we explain here how rfw interacts with iptables. The impact is as minimal as possible. At start rfw inserts the following rules:
     - on INPUT/OUTPUT insert block all IPs to/from the tcp rfw port
     - on INPUT/OUTPUT insert allow white.list IPs to/from tcp rfw port

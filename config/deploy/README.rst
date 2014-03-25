@@ -88,7 +88,7 @@ Deploy keys to the server
 
 Let's assume you deploy to the server with IP 11.11.11.11.
 
-Copy ``server_11.11.11.11/server.crt`` and ``server_11.11.11.11/server.key`` for example to ``/etc/rfw/ssl/`` folder.
+Copy ``server_11.11.11.11/server.crt`` and ``server_11.11.11.11/server.key`` for example to ``/etc/rfw/ssl/`` folder on host 11.11.11.11.
 Update ``/etc/rfw/rfw.conf`` in order to point to these files::
 
     outward.server.certfile = /etc/rfw/ssl/server.crt
