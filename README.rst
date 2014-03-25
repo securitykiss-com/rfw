@@ -109,6 +109,7 @@ FAQ
 **Q: Why not use chef/puppet/ansible/salt/fabric/ssh for remote management instead?**
 
 | For a couple of reasons:
+
 - Security, trust and permission management. The above tools require giving a remote client the ssh root acces. Often we want to allow the IP analytics server to be able to block selected IPs without giving admin rights. 
 - Performance 
 - Handle frequent and concurrent requests 
@@ -146,8 +147,8 @@ Security of rfw was the primary concern from the very beginning and influenced t
 License
 -------
 
-Copyrite (c) 2014 `SecurityKISS Ltd <http://www.securitykiss.com>`__,
-released under the `MIT License <LICENSE.txt>`__
+Copyrite (c) 2014 `SecurityKISS Ltd <http://www.securitykiss.com>`_,
+released under the `MIT License <LICENSE.txt>`_
 
 | Yes, Mr patent attorney, you have nothing to do here. Find a decent job instead.
 | Fight intellectual "property".
