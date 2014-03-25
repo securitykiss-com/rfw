@@ -134,6 +134,7 @@ Tampering with the core firewall should never be taken lightly. rfw must be run 
 - serializing iptables modifications
 
 Security of rfw was the primary concern from the very beginning and influenced these design decisions: 
+
 - simplicity 
 - no fancy features 
 - no external dependencies except iptables 
