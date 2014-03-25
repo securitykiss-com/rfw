@@ -47,10 +47,17 @@ def create_requesthandlers(rfwconf, cmd_queue, expiry_queue):
 
     ver = '0.0.0'
     try:
-        with open(os.path.join(os.path.dirname(__file__), 'VERSION')) as f:
-            ver = f.read().strip()
+        version_file = os.path.join(os.path.dirname(__file__), '_version.py')
+        with open(version_file) as f:
+            verline = f.read().strip()
+            VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
+            mo = re.search(VSRE, verline, re.M)
+            if mo:
+                ver = mo.group(1)
+            else:
+                log.error('Could not find version string in {}'.format(version_file))
     except IOError, e:
-        log.error('Could not read VERSION: {} {}'.format(e.strerror, e.filename))
+        log.error('Could not read {}: {} {}'.format(version_file, e.strerror, e.filename))
     server_ver = 'SecurityKISS rfw/{}'.format(ver)
 
 

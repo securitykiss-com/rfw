@@ -26,7 +26,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import os, io
+import os, io, re
 import distutils.core
 from distutils.command.install import install
 try:
@@ -60,15 +60,19 @@ def read(*filenames, **kwargs):
 
 
 
-version = 0.0.0
-with open(os.path.join(os.path.dirname(__file__), 'rfw/VERSION')) as f:
-    version = f.read().strip()
-
+ver = '0.0.0'
+version_file = os.path.join(os.path.dirname(__file__), 'rfw', '_version.py')
+with open(version_file) as f:
+    verline = f.read().strip()
+    VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
+    mo = re.search(VSRE, verline, re.M)
+    if mo:
+        ver = mo.group(1)
 
 
 setup(
     name = "rfw",
-    version = version,
+    version = ver,
     author = "SecurityKISS Ltd",
     author_email = "open.source@securitykiss.com",
     description = ("Remote firewall as a web service. REST API for iptables."),
@@ -77,7 +81,7 @@ setup(
     url = "https://github.com/securitykiss-com/rfw",
     packages = ['rfw'],
     scripts = ['bin/rfw'],
-    data_files = [('/etc/rfw', ['config/rfw.conf', 'config/white.list']), ('/etc/rfw/deploy', ['config/deploy/rfwgen', 'config/deploy/README.rst'])],
+    data_files = [  ('/etc/rfw', ['config/rfw.conf', 'config/white.list']), ('/etc/rfw/deploy', ['config/deploy/rfwgen', 'config/deploy/README.rst'])],
     long_description = read('README.rst', 'CHANGES.txt'),
     cmdclass = {'install': post_install},
     classifiers=[

@@ -2,5 +2,6 @@ include README.rst
 include bin/*
 include config/*
 include config/deploy/*
+include rfw/*
 recursive-include docs *.txt
 recursive-exclude rfw *~
