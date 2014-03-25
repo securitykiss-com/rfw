@@ -27,12 +27,8 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import os, io, re
-import distutils.core
-from distutils.command.install import install
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
+from setuptools.command.install import install
+from setuptools import setup
 
 # post install hook
 class post_install(install):
@@ -45,9 +41,6 @@ class post_install(install):
 
 
 # Utility function to read the README file used for long description.
-#def read(fname):
-#    return open(os.path.join(os.path.dirname(__file__), fname)).read()
-
 def read(*filenames, **kwargs):
     encoding = kwargs.get('encoding', 'utf-8')
     sep = kwargs.get('sep', '\n')
