@@ -2,6 +2,8 @@
 #
 # Copyrite (c) 2014 SecurityKISS Ltd (http://www.securitykiss.com)  
 #
+# This file is part of rfw
+#
 # The MIT License (MIT)
 #
 # Yes, Mr patent attorney, you have nothing to do here. Find a decent job instead. 

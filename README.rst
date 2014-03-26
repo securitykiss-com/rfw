@@ -4,7 +4,7 @@ rfw - remote firewall
 
 Remote firewall as a web service.
  
-``rfw`` is the RESTful server which applies iptables rules to block or allow IP addresses on request from a remote client. ``rfw`` maintains the list of blocked IP addresses which may be updated in real time from many sources. ``rfw`` also solves the problem of concurrent modifications to iptables since the requests are serialized.
+``rfw`` is the RESTful server which applies iptables rules to block or allow IP addresses on request from a remote client. ``rfw`` maintains the list of blocked IP addresses which may be updated on the fly from many sources. ``rfw`` also solves the problem of concurrent modifications to iptables since the requests are serialized.
 
 Typical use cases
 -----------------
@@ -18,7 +18,7 @@ Features
 
 - block/allow IP addresses with iptables on request from remote host
 - handle individual IP or CIDR ranges (xx.xx.xx.xx/mask)
-- apply action permanently or with expiry periods
+- apply action permanently or with expiry timeout
 - keep IP/range whitelist - actions related to whitelisted IPs are ignored what prevents locking out the legitmate clients
 - serialize requests to prevent concurrency issues with iptables
 - REST API
@@ -58,6 +58,21 @@ Examples:
 |                                                |                                                                                         |
 | PUT /drop/input/any/11.22.33.44/?expire=600    |     iptables -I INPUT -s 11.22.33.44 -j DROP                                            |
 +------------------------------------------------+-----------------------------------------------------------------------------------------+
+|                                                | Return the list of existing rules in JSON format. Sample output::                       |
+|                                                |                                                                                         |
+| GET /list/input                                |    [{"chain": "INPUT", "num": "1", "pkts": "0",                                         |
+|                                                |      "bytes": "0", "target": "DROP", "prot": "all",                                     |
+|                                                |      "opt": "--", "inp": "*", "out": "*",                                               |
+|                                                |      "source": "22.22.22.0/24",                                                         |
+|                                                |      "destination": "0.0.0.0/0", "extra": ""},                                          |
+|                                                |     {"chain": "INPUT", "num": "2", "pkts": "0",                                         |
+|                                                |      "bytes": "0", "target": "DROP", "prot": "all",                                     |
+|                                                |      "opt": "--", "inp": "*", "out": "*",                                               |
+|                                                |      "source": "11.22.33.44",                                                           |
+|                                                |      "destination": "0.0.0.0/0", "extra": ""}]                                          |
+|                                                |                                                                                         |
++------------------------------------------------+-----------------------------------------------------------------------------------------+
+
 
 
 Deployment
@@ -131,7 +146,7 @@ rfw is intended for hosts with static IP addresses. It includes both servers and
 
 Tampering with the core firewall should never be taken lightly. rfw must be run with root privileges in order to modify iptables so it requires a lot of trust in the software. Sometimes there is no choice and you have to automate firewall actions across individual boxes anyway. Then rfw makes it more secure because the remote client does not need to have full access to the host and can only block/allow IP addresses using rfw API. While rfw is designed with distributed system in mind, it may also improve security even for a single box by: 
 
-- limiting iptables functionality to apply only simple rules
+- limiting iptables functionality to only simple rules
 - whitelisting selected IP addresses to prevent lock out 
 - serializing iptables modifications
 
