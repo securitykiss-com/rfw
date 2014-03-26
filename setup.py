@@ -28,9 +28,18 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import os, io, re
+import sys, os, io, re
 from setuptools.command.install import install
 from setuptools import setup
+
+pytver = sys.version_info
+
+if pytver[0] == 2 and pytver[1] >= 7:
+    pass
+else:
+    print("rfw requires python 2.7")
+    sys.exit(1)
+
 
 # post install hook
 class post_install(install):

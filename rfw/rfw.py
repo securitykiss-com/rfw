@@ -28,7 +28,17 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
+
 from __future__ import print_function
+import sys
+pytver = sys.version_info
+if pytver[0] == 2 and pytver[1] >= 7:
+    pass
+else:
+    print("rfw requires python 2.7")
+    sys.exit(1)
+
+
 import argparse, logging, re, sys, struct, socket, subprocess, signal, time, json, os
 from Queue import Queue, PriorityQueue
 from threading import Thread

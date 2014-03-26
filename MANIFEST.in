@@ -1,4 +1,5 @@
-include README.rst
+include README*
+include CHANGES*
 include bin/*
 include config/*
 include config/deploy/*
