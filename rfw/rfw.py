@@ -72,20 +72,37 @@ def create_requesthandlers(rfwconf, cmd_queue, expiry_queue):
 
     def process(handler, modify, urlpath):
         # modify should be 'D' for Delete or 'I' for Insert understood as -D and -I iptables flags
-        assert modify == 'D' or modify == 'I'
+        assert modify in ['D', 'I', 'L']
         log.debug('process {} urlpath: {}'.format(modify, urlpath))
-        
+      
         try:
             action, rule, directives = cmdparse.parse_command(urlpath)
             log.debug('\nAction: {}\nRule: {}\nDirectives: {}'.format(action, rule, directives))
-            if action == 'list':
-                chain = rule
-                rules = Iptables.read_simple_rules(chain)
-                log.debug('List rfw rules: %s', rules) 
-                list_of_dict = map(iptables.Rule._asdict, rules)                    
-                resp = json.dumps(list_of_dict)
-                return handler.http_resp(200, resp)
-            elif action.upper() in iptables.RULE_TARGETS:
+            if modify == 'L':
+                if action == 'help':
+                    resp = 'TODO usage'
+                    return handler.http_resp(200, resp)
+                elif action == 'list':
+                    chain = rule
+                    rules = Iptables.read_simple_rules(chain)
+                    log.debug('List rfw rules: %s', rules) 
+                    list_of_dict = map(iptables.Rule._asdict, rules)                    
+                    resp = json.dumps(list_of_dict)
+                    return handler.http_resp(200, resp)
+                elif rfwconf.is_non_restful():
+                    mod = directives.get('modify')
+                    if not mod:
+                        raise Exception('Unrecognized command. Non-restful enabled, you need to provide modify parameter.'.format(action))
+                    if mod == 'insert':
+                        modify = 'I'
+                    elif mod == 'delete':
+                        modify = 'D'
+                    else:
+                        raise Exception('Unrecognized command. Modify parameter can be "insert" or "delete".')
+                else:
+                    raise Exception('Unrecognized command. Non-restful disabled.')
+
+            if modify in ['D', 'I'] and action.upper() in iptables.RULE_TARGETS:
                 # eliminate ignored/whitelisted IP related commands early to prevent propagating them to expiry queue
                 check_whitelist_conflict(rule.source, rfwconf.whitelist())
                 check_whitelist_conflict(rule.destination, rfwconf.whitelist())
@@ -94,9 +111,9 @@ def create_requesthandlers(rfwconf, cmd_queue, expiry_queue):
                 cmd_queue.put_nowait(ctup)
                 return handler.http_resp(200, ctup)
             else:
-                raise Exception('Unrecognized action: {}'.format(action))
+                raise Exception('Unrecognized command.')
         except Exception, e:
-            msg = 'add_command error: {}'.format(e.message)
+            msg = 'ERROR: {}'.format(e.message)
             # logging as error disabled - bad client request is not an error 
             # log.exception(msg)
             log.info(msg)
@@ -114,24 +131,17 @@ def create_requesthandlers(rfwconf, cmd_queue, expiry_queue):
 
         def do_modify(self, modify):
             self.go(modify, self.path, self.client_address[0])
-    
+
         def do_PUT(self):
-            self.do_modify('I')
+            self.go('I', self.path, self.client_address[0])
     
         def do_DELETE(self):
-            self.do_modify('D')
+            self.go('D', self.path, self.client_address[0])
     
         def do_GET(self):
-            if rfwconf.is_non_restful(): 
-                #TODO here it will be more complicated. The GET requests are valid in restful scenario for listing rfw status
-                self.do_POST()
-            else:
-                self.send_response(405) # Method Not Allowed
+            self.go('L', self.path, self.client_address[0])
     
-        def do_POST(self):
-            self.do_modify('I')
-
-
+   
 
     class OutwardRequestHandler(BasicAuthRequestHandler):
         
@@ -140,10 +150,8 @@ def create_requesthandlers(rfwconf, cmd_queue, expiry_queue):
 
         def creds_check(self, user, password):
             return user == rfwconf.auth_username() and password == rfwconf.auth_password()
-    
 
         def go(self, modify, urlpath, remote_addr):
-            
             # authenticate by checking if client IP is in the whitelist - normally reqests from non-whitelisted IPs should be blocked by firewall beforehand
             if not iputil.ip_in_list(remote_addr, rfwconf.whitelist()):
                 log.error('Request from client IP: {} which is not authorized in the whitelist. It should have been blocked by firewall.'.format(remote_addr))
@@ -151,26 +159,16 @@ def create_requesthandlers(rfwconf, cmd_queue, expiry_queue):
 
             process(self, modify, urlpath)
 
-          
-        def do_modify(self, modify):
-            self.go(modify, self.path, self.client_address[0])
-    
         def do_PUT(self):
-            self.do_modify('I')
+            self.go('I', self.path, self.client_address[0])
     
         def do_DELETE(self):
-            self.do_modify('D')
+            self.go('D', self.path, self.client_address[0])
     
         def do_GET(self):
-            if rfwconf.is_non_restful(): 
-                #TODO here it will be more complicated. The GET requests are valid in restful scenario for listing rfw status
-                self.do_POST()
-            else:
-                self.send_response(405) # Method Not Allowed
+            self.go('L', self.path, self.client_address[0])
     
-        def do_POST(self):
-            self.do_modify('I')
-
+   
     return LocalRequestHandler, OutwardRequestHandler
 
 

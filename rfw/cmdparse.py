@@ -73,15 +73,12 @@ def parse_command_path(path):
 
     p = path_parts(path)
 
-    action = p[0]
+    # for path = '/' return 'help' action
+    if not p:
+        return 'help', None
 
-    # for path = '/' return empty tuple
-    if action == '':
-        if len(p) == 1:
-            return tuple()
-        else:
-            raise PathError(path)
-    
+    action = p[0]
+   
     if action.upper() in iptables.RULE_TARGETS:
         try:
             return action, build_rule(p)
@@ -224,6 +221,15 @@ def parse_command_query(query):
             ret['wait'] = wait
         else:
             raise ValueError('Incorrect wait parameter value')
+
+
+    modify = params.get('modify')
+    if modify:
+        modify = modify.lower()
+        if modify in ['insert', 'delete']:
+            ret['modify'] = modify
+        else:
+            raise ValueError('Incorrect modify parameter value')
     return ret
 
 
