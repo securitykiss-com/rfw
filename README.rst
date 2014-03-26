@@ -1,8 +1,7 @@
-=====================
 rfw - remote firewall
 =====================
 
-Remote firewall as a web service.
+**Remote firewall as a web service.**
  
 ``rfw`` is the RESTful server which applies iptables rules to block or allow IP addresses on request from a remote client. ``rfw`` maintains the list of blocked IP addresses which may be updated on the fly from many sources. ``rfw`` also solves the problem of concurrent modifications to iptables since the requests are serialized.
 
@@ -93,7 +92,7 @@ Generate keys and certificates with config/deploy/rfwgen::
 
     ./rfwgen <server_ip>
 
-See `rfwgen README <config/deploy/README.rst>`__ for more details.
+See `rfwgen README <https://github.com/securitykiss-com/rfw/blob/master/config/deploy/README.rst>`__ for more details.
 
 
 Fill blanks in configuration file /etc/rfw/rfw.conf and /etc/rfw/white.list.
@@ -105,11 +104,15 @@ Run in verbose mode with default config file::
 
 Test with curl::
 
-    curl -v --cacert config/deploy/client/ca.crt --user myuser:mypasswd https://<server_ip>:7393/drop/input/eth0/1.2.3.4
+    curl -v --cacert config/deploy/client/ca.crt --user myuser:mypasswd -XPUT https://<server_ip>:7393/drop/input/eth0/1.2.3.4
 
 or when testing on localhost you can skip certificate verification::
 
-    curl -v --insecure --user myuser:mypasswd https://127.0.0.1:8443/drop/input/eth0/1.2.3.4
+    curl -v --insecure --user myuser:mypasswd -XPUT https://127.0.0.1:7393/drop/input/eth0/1.2.3.4
+
+or when ``local.server`` enabled there is no authorization::
+
+    curl -v -XPUT http://localhost:7390/drop/input/eth0/1.2.3.4
 
 Run rfw without installing
 --------------------------
@@ -163,8 +166,8 @@ Security of rfw was the primary concern from the very beginning and influenced t
 License
 -------
 
-Copyrite (c) 2014 `SecurityKISS Ltd <http://www.securitykiss.com>`_,
-released under the `MIT License <LICENSE.txt>`_
+Copyrite (c) 2014 `SecurityKISS Ltd <http://www.securitykiss.com>`__,
+released under the `MIT License <https://github.com/securitykiss-com/rfw/blob/master/LICENSE.txt>`__
 
 | Yes, Mr patent attorney, you have nothing to do here. Find a decent job instead.
 | Fight intellectual "property".

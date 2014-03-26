@@ -77,7 +77,7 @@ setup(
     packages = ['rfw'],
     scripts = ['bin/rfw'],
     data_files = [  ('/etc/rfw', ['config/rfw.conf', 'config/white.list']), ('/etc/rfw/deploy', ['config/deploy/rfwgen', 'config/deploy/README.rst'])],
-    long_description = read('README.rst'),
+    long_description = read('README.rst', 'CHANGES.rst'),
     cmdclass = {'install': post_install},
     classifiers=[
         "Development Status :: 4 - Beta",
