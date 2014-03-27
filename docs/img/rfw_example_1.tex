@@ -1,0 +1,32 @@
+\documentclass[a4paper, 11pt]{article}
+
+% change default font family
+\renewcommand{\familydefault}{\ttdefault}
+% switch off page numbering
+\pagenumbering{gobble}
+
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning}
+\begin{document}
+
+
+% align parameter is necessary to make line break work in nodes
+\tikzstyle{block} = [draw, fill=blue!10, rectangle, minimum height=4em, minimum width=12em, align=center]
+
+\pgfdeclarelayer{background}
+\pgfsetlayers{background,main}
+
+\begin{tikzpicture}[node distance=22em,>=latex', on grid]
+    \node [block, label={[yshift=2em]above:rfw clients}] (controller) [xshift=-10] {IP reputation server\\99.99.99.99};
+    \node [block] (admin) [below=6em of controller] {Admin laptop\\88.88.88.0/24};
+    \node [block, label={[yshift=2em, align=center]above:Firewalled servers\\with rfw installed}] (toronto) [right=of controller] {Toronto\\11.11.11.11};
+    \node [block] (berlin) [below=6em of toronto] {Berlin\\22.22.22.22};
+
+    \begin{pgfonlayer}{background}
+        \node[cloud, cloud puffs=10, cloud ignores aspect, minimum width=16em, minimum height=9em, align=center, draw=black!30, fill=yellow!30] (cloud) [below right=3em and 11em of controller] {};
+    \end{pgfonlayer}
+
+ 
+\end{tikzpicture}
+
+\end{document}
