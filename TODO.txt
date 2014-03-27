@@ -6,7 +6,7 @@ TODO
 - both remote and local interface: SSL secured that can listen on any available network interface and plain HTTP that can listen only on localhost
 - local client (rfwc) with syntax identical to iptables which acts as the iptables guard
 
-- consider user/passwd for localhost server
+- consider user/passwd authentication for localhost server
 
 - rfwc comment: "Note that when the rules come from variuos sources they may interact badly. For firewalls the order of rules matters. That's why the functionality of remote rfw is limited to blocking individual IPs inserted in front of the ruleset. Be careful when using local rfwc where you have the full power of iptables at hand."
 

@@ -1,7 +1,7 @@
 rfw - remote firewall
 =====================
 
-**Remote firewall as a web service.**
+**Remote firewall with REST API.**
  
 ``rfw`` is the RESTful server which applies iptables rules to block or allow IP addresses on request from a remote client. ``rfw`` maintains the list of blocked IP addresses which may be updated on the fly from many sources. ``rfw`` also solves the problem of concurrent modifications to iptables since the requests are serialized.
 
@@ -22,7 +22,7 @@ Features
 - serialize requests to prevent concurrency issues with iptables
 - REST API
 - secured with SSL
-- authenticated with basic authentication over SSL and by client source IP
+- authenticated with basic authentication over SSL and by client IP address
 - idempotent - actions resulting in duplicate entries are ignored
 - do not interfere with more general iptables rules
 
@@ -77,6 +77,8 @@ Examples:
 Deployment
 ----------
 
+Requires Python 2.7
+
 Install from PyPI::
 
     pip install rfw
@@ -110,7 +112,7 @@ or when testing on localhost you can skip certificate verification::
 
     curl -v --insecure --user myuser:mypasswd -XPUT https://127.0.0.1:7393/drop/input/eth0/1.2.3.4
 
-or when ``local.server`` enabled there is no authorization::
+or when ``local.server`` enabled there is no authentication::
 
     curl -v -XPUT http://localhost:7390/drop/input/eth0/1.2.3.4
 
