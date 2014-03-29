@@ -2,6 +2,7 @@ include README*
 include CHANGES*
 include bin/*
 include config/*
+include config/ssl/*
 include config/deploy/*
 include rfw/*
 recursive-include docs *.txt

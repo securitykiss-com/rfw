@@ -6,7 +6,7 @@ pdflatex $1.tex
 # Use ImageMagic's convert to get png. 
 # density determines the resolution and size.
 # flatten ensures white background
-convert -flatten -density 150 -quality 100 $1.pdf $1_page.png
+convert -flatten -density 110 -quality 100 $1.pdf $1_page.png
 
 # trim margins
 convert $1_page.png -trim $1_trim.png

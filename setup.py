@@ -85,7 +85,7 @@ setup(
     url = "https://github.com/securitykiss-com/rfw",
     packages = ['rfw'],
     scripts = ['bin/rfw'],
-    data_files = [  ('/etc/rfw', ['config/rfw.conf', 'config/white.list']), ('/etc/rfw/deploy', ['config/deploy/rfwgen', 'config/deploy/README.rst'])],
+    data_files = [  ('/etc/rfw', ['config/rfw.conf', 'config/white.list']), ('/etc/rfw/deploy', ['config/deploy/rfwgen', 'config/deploy/README.rst']), ('/etc/rfw/ssl', ['config/ssl/PUT_SERVER_KEYS_HERE'])],
     long_description = read('README.rst', 'CHANGES.rst'),
     cmdclass = {'install': post_install},
     classifiers=[
