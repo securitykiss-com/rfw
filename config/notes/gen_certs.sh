@@ -1,8 +1,10 @@
 #!/usr/bin/env sh
 
+# Here are notes on creating certs and CA
 
 #################################
-# For now we create the self-signed cert as per:
+# 1. Self-signed cert
+#################################
 # https://devcenter.heroku.com/articles/ssl-certificate-self
 
 # Generate private key and certificate signing request
@@ -17,9 +19,9 @@ openssl x509 -req -days 3653 -in server.csr -signkey server.key -out server.crt
 
 
 #################################
-# In the future automate creating single CA and sign certs for every server.
+# 2. Create CA and sign certs
+#################################
 # See http://blog.didierstevens.com/2008/12/30/howto-make-your-own-cert-with-openssl/
-# Here is the procedure
 
 # generate a 4096-bit long RSA key for the root CA if does not exist
 openssl genrsa -out ca.key 4096
