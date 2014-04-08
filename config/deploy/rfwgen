@@ -76,6 +76,7 @@ if __name__ == '__main__':
         sys.exit(-1)
 
     #TODO set umask and/or individual file permissions
+    os.umask(0077)
 
     server_dir = 'server_{}'.format(server_ip)
     ca_key = 'offline/ca.key'
