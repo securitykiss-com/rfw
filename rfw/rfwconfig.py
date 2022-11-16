@@ -183,10 +183,8 @@ class RfwConfig(config.Config):
         except NoOptionError, e:
             raise self.config_error(str(e))
 
-
     def whitelist_file(self):
         return self._getfile("whitelist.file")
-
 
     # return cached list of whitelist IP address ranges in CIDR format or individual IP addresses.
     # TODO allow IP ranges with hyphen, cidrize all including individual IPs
@@ -205,14 +203,12 @@ class RfwConfig(config.Config):
             self._whitelist = ips
         return self._whitelist
 
-
     def iptables_path(self):
         ipt = self._get('iptables.path')
         if ipt:
             return ipt
         else:
             raise self.config_error("iptables.path cannot be empty")
-
 
     def default_expire(self):
         """return parsed default.expire in seconds as string
